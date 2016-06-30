@@ -200,10 +200,9 @@ function groups_action_create_group() {
 				}
 			}
 
-			if ( 'private' == $_POST['group-status'] )
-				$group_status = 'private';
-			elseif ( 'hidden' == $_POST['group-status'] )
-				$group_status = 'hidden';
+			if ( in_array( $_POST['group-status'], bp_groups_get_group_statuses( array(), 'names' ) ) ) {
+				$group_status = sanitize_key( $_POST['group-status'] );
+			}
 
 			if ( !$bp->groups->new_group_id = groups_create_group( array( 'group_id' => $bp->groups->new_group_id, 'status' => $group_status, 'enable_forum' => $group_enable_forum ) ) ) {
 				bp_core_add_message( __( 'There was an error saving group details. Please try again.', 'buddypress' ), 'error' );
@@ -395,7 +394,7 @@ function groups_action_join_group() {
 	if ( !groups_is_user_member( bp_loggedin_user_id(), $bp->groups->current_group->id ) && !groups_is_user_banned( bp_loggedin_user_id(), $bp->groups->current_group->id ) ) {
 
 		// User wants to join a group that is not public.
-		if ( $bp->groups->current_group->status != 'public' ) {
+		if ( ! bp_groups_group_has_cap( $bp->groups->current_group, 'anyone_can_join' ) ) {
 			if ( !groups_check_user_has_invite( bp_loggedin_user_id(), $bp->groups->current_group->id ) ) {
 				bp_core_add_message( __( 'There was an error joining the group.', 'buddypress' ), 'error' );
 				bp_core_redirect( bp_get_group_permalink( $bp->groups->current_group ) );

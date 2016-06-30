@@ -280,12 +280,8 @@ function bp_group_is_visible( $group = false ) {
 		$group =& $groups_template->group;
 	}
 
-	if ( 'public' == $group->status ) {
+	if ( $group->is_visible ) {
 		return true;
-	} else {
-		if ( groups_is_user_member( bp_loggedin_user_id(), $group->id ) ) {
-			return true;
-		}
 	}
 
 	return false;
@@ -470,12 +466,9 @@ function bp_get_group_type( $group = false ) {
 		$group =& $groups_template->group;
 	}
 
-	if ( 'public' == $group->status ) {
-		$type = __( "Public Group", 'buddypress' );
-	} elseif ( 'hidden' == $group->status ) {
-		$type = __( "Hidden Group", 'buddypress' );
-	} elseif ( 'private' == $group->status ) {
-		$type = __( "Private Group", 'buddypress' );
+	$status_obj = bp_groups_get_group_status_object( $group->status );
+	if ( ! empty( $status_obj->display_name ) ) {
+		$type = $status_obj->display_name . ' ' . __( 'Group', 'buddypress' );
 	} else {
 		$type = ucwords( $group->status ) . ' ' . __( 'Group', 'buddypress' );
 	}
@@ -529,7 +522,6 @@ function bp_group_status( $group = false ) {
 		 */
 		return apply_filters( 'bp_get_group_status', $group->status, $group );
 	}
-
 /**
  * Output the group avatar while in the groups loop.
  *
@@ -2605,8 +2597,7 @@ function bp_group_admin_tabs( $group = false ) {
 	}
 
 	$css_id = 'manage-members';
-
-	if ( 'private' == $group->status ) {
+	if ( bp_groups_group_has_cap( $group, 'accepts_membership_requests' ) ) {
 		$css_id = 'membership-requests';
 	}
 
@@ -3202,6 +3193,8 @@ function bp_group_join_button( $group = false ) {
 			$group =& $groups_template->group;
 		}
 
+		var_dump( $group );
+
 		// Don't show button if not logged in or previously banned.
 		if ( ! is_user_logged_in() || bp_group_is_user_banned( $group ) ) {
 			return false;
@@ -3236,75 +3229,65 @@ function bp_group_join_button( $group = false ) {
 
 		// Not a member.
 		} else {
+			// Show different buttons based on group capabilities.
+							// Member has outstanding invitation -
+				// show an "Accept Invitation" button.
+			if ( $group->is_invited ) {
+				$button = array(
+					'id'                => 'accept_invite',
+					'component'         => 'groups',
+					'must_be_logged_in' => true,
+					'block_self'        => false,
+					'wrapper_class'     => 'group-button ' . $group->status,
+					'wrapper_id'        => 'groupbutton-' . $group->id,
+					'link_href'         => add_query_arg( 'redirect_to', bp_get_group_permalink( $group ), bp_get_group_accept_invite_link( $group ) ),
+					'link_text'         => __( 'Accept Invitation', 'buddypress' ),
+					'link_class'        => 'group-button accept-invite',
+				);
+			} elseif ( bp_groups_group_has_cap( $group, 'anyone_can_join' ) ) {
+				$button = array(
+					'id'                => 'join_group',
+					'component'         => 'groups',
+					'must_be_logged_in' => true,
+					'block_self'        => false,
+					'wrapper_class'     => 'group-button ' . $group->status,
+					'wrapper_id'        => 'groupbutton-' . $group->id,
+					'link_href'         => wp_nonce_url( bp_get_group_permalink( $group ) . 'join', 'groups_join_group' ),
+					'link_text'         => __( 'Join Group', 'buddypress' ),
+					'link_class'        => 'group-button join-group',
+				);
+			} elseif ( bp_groups_group_has_cap( $group, 'accepts_membership_requests' ) ) {
 
-			// Show different buttons based on group status.
-			switch ( $group->status ) {
-				case 'hidden' :
-					return false;
-
-				case 'public':
+				// Member has requested membership but request is pending -
+				// show a "Request Sent" button.
+				if ( $group->is_pending ) {
 					$button = array(
-						'id'                => 'join_group',
+						'id'                => 'membership_requested',
+						'component'         => 'groups',
+						'must_be_logged_in' => true,
+						'block_self'        => false,
+						'wrapper_class'     => 'group-button pending ' . $group->status,
+						'wrapper_id'        => 'groupbutton-' . $group->id,
+						'link_href'         => bp_get_group_permalink( $group ),
+						'link_text'         => __( 'Request Sent', 'buddypress' ),
+						'link_class'        => 'group-button pending membership-requested',
+					);
+
+				// Member has not requested membership yet -
+				// show a "Request Membership" button.
+				} else {
+					$button = array(
+						'id'                => 'request_membership',
 						'component'         => 'groups',
 						'must_be_logged_in' => true,
 						'block_self'        => false,
 						'wrapper_class'     => 'group-button ' . $group->status,
 						'wrapper_id'        => 'groupbutton-' . $group->id,
-						'link_href'         => wp_nonce_url( bp_get_group_permalink( $group ) . 'join', 'groups_join_group' ),
-						'link_text'         => __( 'Join Group', 'buddypress' ),
-						'link_class'        => 'group-button join-group',
+						'link_href'         => wp_nonce_url( bp_get_group_permalink( $group ) . 'request-membership', 'groups_request_membership' ),
+						'link_text'         => __( 'Request Membership', 'buddypress' ),
+						'link_class'        => 'group-button request-membership',
 					);
-					break;
-
-				case 'private' :
-
-					// Member has outstanding invitation -
-					// show an "Accept Invitation" button.
-					if ( $group->is_invited ) {
-						$button = array(
-							'id'                => 'accept_invite',
-							'component'         => 'groups',
-							'must_be_logged_in' => true,
-							'block_self'        => false,
-							'wrapper_class'     => 'group-button ' . $group->status,
-							'wrapper_id'        => 'groupbutton-' . $group->id,
-							'link_href'         => add_query_arg( 'redirect_to', bp_get_group_permalink( $group ), bp_get_group_accept_invite_link( $group ) ),
-							'link_text'         => __( 'Accept Invitation', 'buddypress' ),
-							'link_class'        => 'group-button accept-invite',
-						);
-
-					// Member has requested membership but request is pending -
-					// show a "Request Sent" button.
-					} elseif ( $group->is_pending ) {
-						$button = array(
-							'id'                => 'membership_requested',
-							'component'         => 'groups',
-							'must_be_logged_in' => true,
-							'block_self'        => false,
-							'wrapper_class'     => 'group-button pending ' . $group->status,
-							'wrapper_id'        => 'groupbutton-' . $group->id,
-							'link_href'         => bp_get_group_permalink( $group ),
-							'link_text'         => __( 'Request Sent', 'buddypress' ),
-							'link_class'        => 'group-button pending membership-requested',
-						);
-
-					// Member has not requested membership yet -
-					// show a "Request Membership" button.
-					} else {
-						$button = array(
-							'id'                => 'request_membership',
-							'component'         => 'groups',
-							'must_be_logged_in' => true,
-							'block_self'        => false,
-							'wrapper_class'     => 'group-button ' . $group->status,
-							'wrapper_id'        => 'groupbutton-' . $group->id,
-							'link_href'         => wp_nonce_url( bp_get_group_permalink( $group ) . 'request-membership', 'groups_request_membership' ),
-							'link_text'         => __( 'Request Membership', 'buddypress' ),
-							'link_class'        => 'group-button request-membership',
-						);
-					}
-
-					break;
+				}
 			}
 		}
 
@@ -3448,31 +3431,24 @@ function bp_group_status_message( $group = null ) {
 
 	// Group has a status.
 	} else {
-		switch( $group->status ) {
-
-			// Private group.
-			case 'private' :
-				if ( ! bp_group_has_requested_membership( $group ) ) {
-					if ( is_user_logged_in() ) {
-						if ( bp_group_is_invited( $group ) ) {
-							$message = __( 'You must accept your pending invitation before you can access this private group.', 'buddypress' );
-						} else {
-							$message = __( 'This is a private group and you must request group membership in order to join.', 'buddypress' );
-						}
+		if ( bp_groups_group_has_cap( $group, 'accepts_membership_requests' ) ) {
+			if ( ! bp_group_has_requested_membership( $group ) ) {
+				if ( is_user_logged_in() ) {
+					if ( bp_group_is_invited( $group ) ) {
+						$message = __( 'You must accept your pending invitation before you can access this private group.', 'buddypress' );
 					} else {
-						$message = __( 'This is a private group. To join you must be a registered site member and request group membership.', 'buddypress' );
+						$message = __( 'This is a private group and you must request group membership in order to join.', 'buddypress' );
 					}
 				} else {
-					$message = __( 'This is a private group. Your membership request is awaiting approval from the group administrator.', 'buddypress' );
+					$message = __( 'This is a private group. To join you must be a registered site member and request group membership.', 'buddypress' );
 				}
+			} else {
+				$message = __( 'This is a private group. Your membership request is awaiting approval from the group administrator.', 'buddypress' );
+			}
 
-				break;
-
-			// Hidden group.
-			case 'hidden' :
-			default :
-				$message = __( 'This is a hidden group and only invited members can join.', 'buddypress' );
-				break;
+		} elseif ( ! bp_groups_group_has_cap( $group, 'anyone_can_join' ) ) {
+			// This group neither accepts requests nor allows open membership.
+			$message = __( 'This is a hidden group and only invited members can join.', 'buddypress' );
 		}
 	}
 

@@ -68,6 +68,14 @@ class BP_Groups_Group {
 	public $status;
 
 	/**
+	 * Group capabilities.
+	 *
+	 * @since 2.7.0
+	 * @var array
+	 */
+	public $capabilities;
+
+	/**
 	 * Should (legacy) bbPress forums be enabled for this group?
 	 *
 	 * @since 1.6.0
@@ -140,12 +148,20 @@ class BP_Groups_Group {
 	public $last_activity;
 
 	/**
-	 * If this is a private or hidden group, does the current user have access?
+	 * Should the current user have access?
 	 *
 	 * @since 1.6.0
 	 * @var bool
 	 */
 	public $user_has_access;
+
+	/**
+	 * Should the current user be able to see the group?
+	 *
+	 * @since 1.6.0
+	 * @var bool
+	 */
+	public $is_visible;
 
 	/**
 	 * Raw arguments passed to the constructor.
@@ -217,6 +233,18 @@ class BP_Groups_Group {
 		$this->enable_forum = $group->enable_forum;
 		$this->date_created = $group->date_created;
 
+		// Populate the group's capabilities.
+		$base_caps = bp_groups_get_group_status_capabilities( $group->status );
+		/**
+		 * Filters the capabilities for a specific group.
+		 *
+		 * @since 2.7.0
+		 *
+		 * @param array  $base_caps  The capabilities for this group.
+		 * @param array  $group      Group object as it exists so far.
+		 */
+		$this->capabilities = apply_filters( 'bp_groups_group_object_set_caps', $base_caps, $this );
+
 		// Are we getting extra group data?
 		if ( ! empty( $this->args['populate_extras'] ) ) {
 
@@ -249,18 +277,46 @@ class BP_Groups_Group {
 			$this->is_invited = groups_check_user_has_invite( $user_id, $this->id );
 			$this->is_pending = groups_check_for_membership_request( $user_id, $this->id );
 
-			// If this is a private or hidden group, does the current user have access?
-			if ( ( 'private' === $this->status ) || ( 'hidden' === $this->status ) ) {
+			// Set group visibility and access.
+			if ( bp_current_user_can( 'bp_moderate' ) ) {
+				$this->is_visible = true;
+				$this->user_has_access = true;
+			} else {
+				// Should this group be visible to the current user?
+				$this->is_visible = false;
 
-				// Assume user does not have access to hidden/private groups.
+				// Parse multiple visibility conditions into an array.
+				$access_conditions = $this->capabilities['show_group'];
+				if ( ! is_array( $access_conditions ) ) {
+					$access_conditions = explode( ',', $access_conditions );
+				}
+
+				// If the current user meets at least one condition,
+				// allow visibility.
+				foreach ( $access_conditions as $access_condition ) {
+					if ( bp_groups_user_meets_access_condition( $access_condition, $this->id, $user_id ) ) {
+						$this->is_visible = true;
+						break;
+					}
+				}
+
+				// Should the user have access to this group?
 				$this->user_has_access = false;
 
-				// Group members or community moderators have access.
-				if ( ( $this->is_member && is_user_logged_in() ) || bp_current_user_can( 'bp_moderate' ) ) {
-					$this->user_has_access = true;
+				// Parse multiple visibility conditions into an array.
+				$access_conditions = $this->capabilities['access_group'];
+				if ( ! is_array( $access_conditions ) ) {
+					$access_conditions = explode( ',', $access_conditions );
 				}
-			} else {
-				$this->user_has_access = true;
+
+				// If the current user meets at least one condition,
+				// allow access.
+				foreach ( $access_conditions as $access_condition ) {
+					if ( bp_groups_user_meets_access_condition( $access_condition, $this->id, $user_id ) ) {
+						$this->user_has_access = true;
+						break;
+					}
+				}
 			}
 		}
 	}
@@ -1429,6 +1485,66 @@ class BP_Groups_Group {
 			$group->is_invited = groups_is_user_invited( $user_id, $group->id ) ? '1' : '0';
 			$group->is_pending = groups_is_user_pending( $user_id, $group->id ) ? '1' : '0';
 			$group->is_banned  = (bool) groups_is_user_banned( $user_id, $group->id );
+
+			// Populate the group's capabilities.
+			if ( empty( $group->status ) ) {
+				// @TODO: This seems like a hack. Need to figure out when $paged_groups are not complete.
+				$temp_group    = groups_get_group( array( 'group_id' => $group->id ) );
+				$group->status = $temp_group->status;
+			}
+			$base_caps = bp_groups_get_group_status_capabilities( $group->status );
+			/**
+			 * Filters the capabilities for a specific group.
+			 *
+			 * @since 2.7.0
+			 *
+			 * @param array  $base_caps  The capabilities for this group.
+			 * @param array  $group      Group object as it exists so far.
+			 */
+			$group->capabilities = apply_filters( 'bp_groups_group_object_set_caps', $base_caps, $group );
+
+			// Set group visibility and access.
+			if ( bp_current_user_can( 'bp_moderate' ) ) {
+				$group->is_visible = true;
+				$group->user_has_access = true;
+			} else {
+				// Should this group be visible to the current user?
+				$group->is_visible = false;
+
+				// Parse multiple visibility conditions into an array.
+				$access_conditions = $group->capabilities['show_group'];
+				if ( ! is_array( $access_conditions ) ) {
+					$access_conditions = explode( ',', $access_conditions );
+				}
+
+				// If the current user meets at least one condition,
+				// allow visibility.
+				foreach ( $access_conditions as $access_condition ) {
+					if ( bp_groups_user_meets_access_condition( $access_condition, $group->id, $user_id ) ) {
+						$group->is_visible = true;
+						break;
+					}
+				}
+
+				// Should the user have access to this group?
+				$group->user_has_access = false;
+
+				// Parse multiple visibility conditions into an array.
+				$access_conditions = $group->capabilities['access_group'];
+				if ( ! is_array( $access_conditions ) ) {
+					$access_conditions = explode( ',', $access_conditions );
+				}
+
+				// If the current user meets at least one condition,
+				// allow access.
+				foreach ( $access_conditions as $access_condition ) {
+					if ( bp_groups_user_meets_access_condition( $access_condition, $group->id, $user_id ) ) {
+						$group->user_has_access = true;
+						break;
+					}
+				}
+			}
+
 		}
 
 		return $paged_groups;
@@ -1537,7 +1653,7 @@ class BP_Groups_Group {
 	 */
 	public static function get_global_topic_count( $status = 'public', $search_terms = false ) {
 		global $bbdb, $wpdb;
-
+		// @TODO: Update this to account for custom statuses?
 		switch ( $status ) {
 			case 'all' :
 				$status_sql = '';
@@ -1590,9 +1706,11 @@ class BP_Groups_Group {
 		$ids = array();
 
 		$ids['all']     = $wpdb->get_col( "SELECT id FROM {$bp->groups->table_name}" );
-		$ids['public']  = $wpdb->get_col( "SELECT id FROM {$bp->groups->table_name} WHERE status = 'public'" );
-		$ids['private'] = $wpdb->get_col( "SELECT id FROM {$bp->groups->table_name} WHERE status = 'private'" );
-		$ids['hidden']  = $wpdb->get_col( "SELECT id FROM {$bp->groups->table_name} WHERE status = 'hidden'" );
+
+		$statuses = bp_groups_get_group_statuses( array(), 'names' );
+		foreach ( $statuses as $status ) {
+			$ids[$status]  = $wpdb->get_col( $wpdb->prepare( "SELECT id FROM {$bp->groups->table_name} WHERE status = %s", $status ) );
+		}
 
 		return $ids;
 	}

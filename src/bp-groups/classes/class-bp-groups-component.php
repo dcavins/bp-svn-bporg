@@ -85,6 +85,16 @@ class BP_Groups_Component extends BP_Component {
 	public $types = array();
 
 	/**
+	 * Group statuses.
+	 *
+	 * @see bp_groups_register_group_status()
+	 *
+	 * @since 2.7.0
+	 * @var array
+	 */
+	public $statuses = array();
+
+	/**
 	 * Start the groups component creation process.
 	 *
 	 * @since 1.5.0
@@ -122,7 +132,8 @@ class BP_Groups_Component extends BP_Component {
 			'template',
 			'adminbar',
 			'functions',
-			'notifications'
+			'notifications',
+			'capabilities'
 		);
 
 		if ( ! buddypress()->do_autoload ) {
@@ -183,6 +194,9 @@ class BP_Groups_Component extends BP_Component {
 
 		parent::setup_globals( $args );
 
+		// Set up basic group statuses.
+		$this->register_base_statuses();
+
 		/* Single Group Globals **********************************************/
 
 		// Are we viewing a single group?
@@ -232,7 +246,7 @@ class BP_Groups_Component extends BP_Component {
 
 			// If the user is not an admin, check if they are a moderator.
 			if ( ! bp_is_item_admin() ) {
-				bp_update_is_item_mod  ( groups_is_user_mod  ( bp_loggedin_user_id(), $this->current_group->id ), 'groups' );
+				bp_update_is_item_mod  ( groups_is_user_mod( bp_loggedin_user_id(), $this->current_group->id ), 'groups' );
 			}
 
 			// Is the logged in user a member of the group?
@@ -242,23 +256,48 @@ class BP_Groups_Component extends BP_Component {
 				$this->current_group->is_user_member = false;
 			}
 
-			// Should this group be visible to the logged in user?
-			if ( 'public' == $this->current_group->status || $this->current_group->is_user_member ) {
+			// Set group visibility and access.
+			if ( bp_current_user_can( 'bp_moderate' ) ) {
 				$this->current_group->is_visible = true;
+				$this->current_group->user_has_access = true;
 			} else {
+				// Should this group be visible to the current user?
 				$this->current_group->is_visible = false;
+
+				// Parse multiple visibility conditions into an array.
+				$access_conditions = $this->current_group->capabilities['show_group'];
+				if ( ! is_array( $access_conditions ) ) {
+					$access_conditions = explode( ',', $access_conditions );
+				}
+
+				// If the current user meets at least one condition,
+				// allow visibility.
+				foreach ( $access_conditions as $access_condition ) {
+					if ( bp_groups_user_meets_access_condition( $access_condition, $this->current_group->id ) ) {
+						$this->current_group->is_visible = true;
+						break;
+					}
+				}
+
+				// Should the user have access to this group?
+				$this->current_group->user_has_access = false;
+
+				// Parse multiple visibility conditions into an array.
+				$access_conditions = $this->current_group->capabilities['access_group'];
+				if ( ! is_array( $access_conditions ) ) {
+					$access_conditions = explode( ',', $access_conditions );
+				}
+
+				// If the current user meets at least one condition,
+				// allow access.
+				foreach ( $access_conditions as $access_condition ) {
+					if ( bp_groups_user_meets_access_condition( $access_condition, $this->current_group->id ) ) {
+						$this->current_group->user_has_access = true;
+						break;
+					}
+				}
 			}
 
-			// If this is a private or hidden group, does the user have access?
-			if ( 'private' == $this->current_group->status || 'hidden' == $this->current_group->status ) {
-				if ( $this->current_group->is_user_member && is_user_logged_in() || bp_current_user_can( 'bp_moderate' ) ) {
-					$this->current_group->user_has_access = true;
-				} else {
-					$this->current_group->user_has_access = false;
-				}
-			} else {
-				$this->current_group->user_has_access = true;
-			}
 
 			// Check once if the current group has a custom front template.
 			$this->current_group->front_template = bp_groups_get_front_template( $this->current_group );
@@ -350,11 +389,7 @@ class BP_Groups_Component extends BP_Component {
 		 *
 		 * @param array $value Array of valid group statuses.
 		 */
-		$this->valid_status = apply_filters( 'groups_valid_status', array(
-			'public',
-			'private',
-			'hidden'
-		) );
+		$this->valid_status = apply_filters( 'groups_valid_status', bp_groups_get_group_statuses() );
 
 		// Auto join group when non group member performs group activity.
 		$this->auto_join = defined( 'BP_DISABLE_AUTO_GROUP_JOIN' ) && BP_DISABLE_AUTO_GROUP_JOIN ? false : true;
@@ -862,6 +897,83 @@ class BP_Groups_Component extends BP_Component {
 		// Group Type.
 		register_taxonomy( 'bp_group_type', 'bp_group', array(
 			'public' => false,
+		) );
+	}
+
+	/**
+	 * Set up base group statuses.
+	 *
+	 * @since 2.7.0
+	 */
+	public function register_base_statuses() {
+
+		$public_group_caps = array(
+			'anyone_can_join'             => true,
+			'accepts_membership_requests' => false,
+			'show_group'                  => 'anyone',
+			'access_group'	              => 'anyone',
+			'post_in_forum'               => 'anyone',
+		);
+		/**
+		 * Filters the basic capabilities of the "public" group status.
+		 *
+		 * @since 2.7.0
+		 *
+		 * @param array $public_group_caps Array of capabilities.
+		 */
+		$public_group_caps = apply_filters( 'bp_groups_public_group_status_caps', $public_group_caps );
+
+		bp_groups_register_group_status( 'public', array(
+			'display_name'    => _x( 'Public', 'Group status name', 'buddypress' ),
+			'capabilities'    => $public_group_caps,
+			'fallback_status' => 'none',
+			'priority'        => 10,
+		) );
+
+		$private_group_caps = array(
+			'anyone_can_join'             => false,
+			'accepts_membership_requests' => true,
+			'show_group'                  => 'anyone',
+			'access_group'	              => 'member',
+			'post_in_forum'               => 'member',
+		);
+		/**
+		 * Filters the basic capabilities of the "public" group status.
+		 *
+		 * @since 2.7.0
+		 *
+		 * @param array $private_group_caps Array of capabilities.
+		 */
+		$private_group_caps = apply_filters( 'bp_groups_private_group_status_caps', $private_group_caps );
+
+		bp_groups_register_group_status( 'private', array(
+			'display_name'    => _x( 'Private', 'Group status name', 'buddypress' ),
+			'capabilities'    => $private_group_caps,
+			'fallback_status' => 'none',
+			'priority'        => 50,
+		) );
+
+		$hidden_group_caps = array(
+			'anyone_can_join'             => false,
+			'accepts_membership_requests' => false, // Invitation only!
+			'show_group'                  => 'member',
+			'access_group'	              => 'member',
+			'post_in_forum'               => 'member',
+		);
+		/**
+		 * Filters the basic capabilities of the "public" group status.
+		 *
+		 * @since 2.7.0
+		 *
+		 * @param array $private_group_caps Array of capabilities.
+		 */
+		$hidden_group_caps = apply_filters( 'bp_groups_hidden_group_status_caps', $hidden_group_caps );
+
+		bp_groups_register_group_status( 'hidden', array(
+			'display_name'    => _x( 'Hidden', 'Group status name', 'buddypress' ),
+			'capabilities'    => $hidden_group_caps,
+			'fallback_status' => 'none',
+			'priority'        => 90,
 		) );
 	}
 }

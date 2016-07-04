@@ -279,9 +279,13 @@ function groups_edit_group_settings( $group_id, $enable_forum, $status, $invite_
 	 * Before we potentially switch the group status, if the old status required membership requests,
 	 * but the new status allows anyone to join, auto-accept those requests.
 	 */
-	$accepted_requests    = bp_groups_group_has_cap( $group, 'accepts_membership_requests' );
-	$will_open_membership = bp_groups_group_has_cap( $group, 'anyone_can_join' );
-	if ( $accepted_requests && $will_open_membership ) {
+	if (
+		// Group membership is currently "by request"...
+		'accepts_membership_requests' == bp_groups_group_has_cap( $group, 'join_method' )
+		// and the group is changing to a status that allows open membership.
+		&& 'anyone_can_join' == bp_groups_group_status_has_cap( $status, $cap )
+		)
+	{
 		groups_accept_all_pending_membership_requests( $group->id );
 	}
 
@@ -2401,6 +2405,81 @@ add_action( 'groups_delete_group', 'bp_remove_group_type_on_group_delete' );
 /** Group Statuses and Capabilities *******************************************/
 
 /**
+ * Set up base group statuses.
+ *
+ * @since 2.7.0
+ */
+function bp_groups_register_base_group_statuses() {
+
+	$public_group_caps = array(
+		'join_method'    => 'anyone_can_join',
+		'show_group'     => 'anyone',
+		'access_group'	 => 'anyone',
+		'post_in_forum'  => 'anyone',
+	);
+	/**
+	 * Filters the basic capabilities of the "public" group status.
+	 *
+	 * @since 2.7.0
+	 *
+	 * @param array $public_group_caps Array of capabilities.
+	 */
+	$public_group_caps = apply_filters( 'bp_groups_public_group_status_caps', $public_group_caps );
+
+	bp_groups_register_group_status( 'public', array(
+		'display_name'    => _x( 'Public', 'Group status name', 'buddypress' ),
+		'capabilities'    => $public_group_caps,
+		'fallback_status' => 'none',
+		'priority'        => 10,
+	) );
+
+	$private_group_caps = array(
+		'join_method'   => 'accepts_membership_requests',
+		'show_group'    => 'anyone',
+		'access_group'  => 'member',
+		'post_in_forum' => 'member',
+	);
+	/**
+	 * Filters the basic capabilities of the "public" group status.
+	 *
+	 * @since 2.7.0
+	 *
+	 * @param array $private_group_caps Array of capabilities.
+	 */
+	$private_group_caps = apply_filters( 'bp_groups_private_group_status_caps', $private_group_caps );
+
+	bp_groups_register_group_status( 'private', array(
+		'display_name'    => _x( 'Private', 'Group status name', 'buddypress' ),
+		'capabilities'    => $private_group_caps,
+		'fallback_status' => 'none',
+		'priority'        => 50,
+	) );
+
+	$hidden_group_caps = array(
+		'join_method'   => 'invitation_only',
+		'show_group'    => 'member',
+		'access_group'	=> 'member',
+		'post_in_forum' => 'member',
+	);
+	/**
+	 * Filters the basic capabilities of the "public" group status.
+	 *
+	 * @since 2.7.0
+	 *
+	 * @param array $private_group_caps Array of capabilities.
+	 */
+	$hidden_group_caps = apply_filters( 'bp_groups_hidden_group_status_caps', $hidden_group_caps );
+
+	bp_groups_register_group_status( 'hidden', array(
+		'display_name'    => _x( 'Hidden', 'Group status name', 'buddypress' ),
+		'capabilities'    => $hidden_group_caps,
+		'fallback_status' => 'none',
+		'priority'        => 90,
+	) );
+}
+add_action( 'bp_groups_register_group_statuses', 'bp_groups_register_base_group_statuses', 4 );
+
+/**
  * Register a group status.
  *
  * @since 2.7.0
@@ -2525,6 +2604,12 @@ function bp_groups_get_group_statuses( $args = array(), $output = 'names', $oper
 	$statuses = buddypress()->groups->statuses;
 
 	$statuses = wp_filter_object_list( $statuses, $args, $operator );
+
+	// Sort by status "priority"
+	// @TODO: Are we allowed closures?
+	uasort( $statuses, function( $a, $b ) {
+	    return strcmp( $a->priority, $b->priority );
+	} );
 
 	/**
 	 * Filters the array of group status objects.
@@ -2687,28 +2772,18 @@ function bp_groups_group_has_cap( $group, $cap ) {
 function bp_groups_group_capabilities_description( $cap, $value ) {
 	$retval = '';
 
-	// Who can join and how:
-	// if ( 'anyone_can_join' == $cap && $value ) {
-	// 	$retval = __( 'Any site member can join this group.', 'buddypress' );
-	// } elseif ( 'accepts_membership_requests' == $cap && $value ) {
-	// 	$retval = __( 'Only users who request membership and are accepted can join the group.', 'buddypress' );
-	// } else {
-	// 	// Group is neither open to anyone nor made by application, so this must be invitation only.
-	// 	$retval = __( 'Only users who are invited can join the group.', 'buddypress' );
-	// }
-
 	switch ( $cap ) {
-		case 'anyone_can_join':
-			if ( $value ) {
+		case 'join_method':
+			if ( 'anyone_can_join' == $value ) {
 				$retval = __( 'Any site member can join this group.', 'buddypress' );
-			}
-			break;
-		case 'accepts_membership_requests' :
-			if ( $value ) {
+			} elseif ( 'accepts_membership_requests' == $value ) {
 				$retval = __( 'Only users who request membership and are accepted can join the group.', 'buddypress' );
+			} elseif ( 'invitation_only' == $value ) {
+				$retval = __( 'Only users who are invited can join the group.', 'buddypress' );
 			}
 			break;
 		case 'show_group' :
+			// @TODO: This could be an array of options.
 			if ( $value ) {
 				$retval = __( 'This group will be listed in the groups directory and in search results.', 'buddypress' );
 			} else {
@@ -2716,7 +2791,10 @@ function bp_groups_group_capabilities_description( $cap, $value ) {
 			}
 			break;
 		case 'access_group' :
-			if ( $value ) {
+			// @TODO: This could be an array of options.
+			if ( 'anyone' == $value ) {
+				$retval = __( 'Group content and activity will be visible to any visitor to the site.', 'buddypress' );
+			} elseif ( 'loggedin' == $value ) {
 				$retval = __( 'Group content and activity will be visible to any site member.', 'buddypress' );
 			} else {
 				$retval = __( 'Group content and activity will only be visible to members of the group.', 'buddypress' );

@@ -2597,7 +2597,7 @@ function bp_group_admin_tabs( $group = false ) {
 	}
 
 	$css_id = 'manage-members';
-	if ( bp_groups_group_has_cap( $group, 'accepts_membership_requests' ) ) {
+	if ( 'accepts_membership_requests' == bp_groups_group_has_cap( $group, 'join_method' ) ) {
 		$css_id = 'membership-requests';
 	}
 
@@ -3244,7 +3244,7 @@ function bp_group_join_button( $group = false ) {
 					'link_text'         => __( 'Accept Invitation', 'buddypress' ),
 					'link_class'        => 'group-button accept-invite',
 				);
-			} elseif ( bp_groups_group_has_cap( $group, 'anyone_can_join' ) ) {
+			} elseif ( 'anyone_can_join' == bp_groups_group_has_cap( $group, 'join_method' ) ) {
 				$button = array(
 					'id'                => 'join_group',
 					'component'         => 'groups',
@@ -3256,7 +3256,7 @@ function bp_group_join_button( $group = false ) {
 					'link_text'         => __( 'Join Group', 'buddypress' ),
 					'link_class'        => 'group-button join-group',
 				);
-			} elseif ( bp_groups_group_has_cap( $group, 'accepts_membership_requests' ) ) {
+			} elseif ( 'accepts_membership_requests' == bp_groups_group_has_cap( $group, 'join_method' ) ) {
 
 				// Member has requested membership but request is pending -
 				// show a "Request Sent" button.
@@ -3431,7 +3431,7 @@ function bp_group_status_message( $group = null ) {
 
 	// Group has a status.
 	} else {
-		if ( bp_groups_group_has_cap( $group, 'accepts_membership_requests' ) ) {
+		if ( 'accepts_membership_requests' == bp_groups_group_has_cap( $group, 'join_method' ) ) {
 			if ( ! bp_group_has_requested_membership( $group ) ) {
 				if ( is_user_logged_in() ) {
 					if ( bp_group_is_invited( $group ) ) {
@@ -3446,7 +3446,7 @@ function bp_group_status_message( $group = null ) {
 				$message = __( 'This is a private group. Your membership request is awaiting approval from the group administrator.', 'buddypress' );
 			}
 
-		} elseif ( ! bp_groups_group_has_cap( $group, 'anyone_can_join' ) ) {
+		} elseif ( 'invitation_only' == bp_groups_group_has_cap( $group, 'join_method' ) ) {
 			// This group neither accepts requests nor allows open membership.
 			$message = __( 'This is a hidden group and only invited members can join.', 'buddypress' );
 		}

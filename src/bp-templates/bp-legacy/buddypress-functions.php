@@ -1437,7 +1437,7 @@ function bp_legacy_theme_ajax_joinleave_group() {
 		return;
 
 	if ( ! groups_is_user_member( bp_loggedin_user_id(), $group->id ) ) {
-		if ( bp_groups_group_has_cap( $group, 'anyone_can_join' ) ) {
+		if ( 'anyone_can_join' == bp_groups_group_has_cap( $group, 'join_method' ) ) {
 			check_ajax_referer( 'groups_join_group' );
 
 			if ( ! groups_join_group( $group->id ) ) {
@@ -1446,7 +1446,7 @@ function bp_legacy_theme_ajax_joinleave_group() {
 				echo '<a id="group-' . esc_attr( $group->id ) . '" class="leave-group" rel="leave" title="' . __( 'Leave Group', 'buddypress' ) . '" href="' . wp_nonce_url( bp_get_group_permalink( $group ) . 'leave-group', 'groups_leave_group' ) . '">' . __( 'Leave Group', 'buddypress' ) . '</a>';
 			}
 
-		} elseif ( bp_groups_group_has_cap( $group, 'accepts_membership_requests' ) ) {
+		} elseif ( 'accepts_membership_requests' == bp_groups_group_has_cap( $group, 'join_method' ) ) {
 
 			// If the user has already been invited, then this is
 			// an Accept Invitation button.

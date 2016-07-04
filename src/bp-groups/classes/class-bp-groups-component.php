@@ -194,9 +194,6 @@ class BP_Groups_Component extends BP_Component {
 
 		parent::setup_globals( $args );
 
-		// Set up basic group statuses.
-		$this->register_base_statuses();
-
 		/* Single Group Globals **********************************************/
 
 		// Are we viewing a single group?
@@ -576,7 +573,7 @@ class BP_Groups_Component extends BP_Component {
 			if ( is_user_logged_in() &&
 				 ! $this->current_group->is_user_member &&
 				 ! groups_check_for_membership_request( bp_loggedin_user_id(), $this->current_group->id ) &&
-				 $this->current_group->status == 'private' &&
+				 'accepts_membership_requests' == bp_groups_group_has_cap( $this->current_group, 'join_method' ) &&
 				 ! groups_check_user_has_invite( bp_loggedin_user_id(), $this->current_group->id )
 				) {
 
@@ -711,7 +708,7 @@ class BP_Groups_Component extends BP_Component {
 					'position' => 30,
 				), $default_params );
 
-				if ( 'private' == $this->current_group->status ) {
+				if ( 'accepts_membership_requests' == bp_groups_group_has_cap( $this->current_group, 'join_method' ) ) {
 					$sub_nav[] = array_merge( array(
 						'name'     => __( 'Requests', 'buddypress' ),
 						'slug'     => 'membership-requests',
@@ -897,83 +894,6 @@ class BP_Groups_Component extends BP_Component {
 		// Group Type.
 		register_taxonomy( 'bp_group_type', 'bp_group', array(
 			'public' => false,
-		) );
-	}
-
-	/**
-	 * Set up base group statuses.
-	 *
-	 * @since 2.7.0
-	 */
-	public function register_base_statuses() {
-
-		$public_group_caps = array(
-			'anyone_can_join'             => true,
-			'accepts_membership_requests' => false,
-			'show_group'                  => 'anyone',
-			'access_group'	              => 'anyone',
-			'post_in_forum'               => 'anyone',
-		);
-		/**
-		 * Filters the basic capabilities of the "public" group status.
-		 *
-		 * @since 2.7.0
-		 *
-		 * @param array $public_group_caps Array of capabilities.
-		 */
-		$public_group_caps = apply_filters( 'bp_groups_public_group_status_caps', $public_group_caps );
-
-		bp_groups_register_group_status( 'public', array(
-			'display_name'    => _x( 'Public', 'Group status name', 'buddypress' ),
-			'capabilities'    => $public_group_caps,
-			'fallback_status' => 'none',
-			'priority'        => 10,
-		) );
-
-		$private_group_caps = array(
-			'anyone_can_join'             => false,
-			'accepts_membership_requests' => true,
-			'show_group'                  => 'anyone',
-			'access_group'	              => 'member',
-			'post_in_forum'               => 'member',
-		);
-		/**
-		 * Filters the basic capabilities of the "public" group status.
-		 *
-		 * @since 2.7.0
-		 *
-		 * @param array $private_group_caps Array of capabilities.
-		 */
-		$private_group_caps = apply_filters( 'bp_groups_private_group_status_caps', $private_group_caps );
-
-		bp_groups_register_group_status( 'private', array(
-			'display_name'    => _x( 'Private', 'Group status name', 'buddypress' ),
-			'capabilities'    => $private_group_caps,
-			'fallback_status' => 'none',
-			'priority'        => 50,
-		) );
-
-		$hidden_group_caps = array(
-			'anyone_can_join'             => false,
-			'accepts_membership_requests' => false, // Invitation only!
-			'show_group'                  => 'member',
-			'access_group'	              => 'member',
-			'post_in_forum'               => 'member',
-		);
-		/**
-		 * Filters the basic capabilities of the "public" group status.
-		 *
-		 * @since 2.7.0
-		 *
-		 * @param array $private_group_caps Array of capabilities.
-		 */
-		$hidden_group_caps = apply_filters( 'bp_groups_hidden_group_status_caps', $hidden_group_caps );
-
-		bp_groups_register_group_status( 'hidden', array(
-			'display_name'    => _x( 'Hidden', 'Group status name', 'buddypress' ),
-			'capabilities'    => $hidden_group_caps,
-			'fallback_status' => 'none',
-			'priority'        => 90,
 		) );
 	}
 }

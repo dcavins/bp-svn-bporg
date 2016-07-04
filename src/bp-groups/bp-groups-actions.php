@@ -41,9 +41,10 @@ function bp_groups_group_access_protection() {
 
 	$current_group   = groups_get_current_group();
 	$user_has_access = $current_group->user_has_access;
+	$is_visible      = $current_group->is_visible;
 	$no_access_args  = array();
 
-	if ( ! $user_has_access && 'hidden' !== $current_group->status ) {
+	if ( ! $user_has_access && $is_visible ) {
 		// Always allow access to home and request-membership.
 		if ( bp_is_current_action( 'home' ) || bp_is_current_action( 'request-membership' ) ) {
 			$user_has_access = true;
@@ -93,7 +94,7 @@ function bp_groups_group_access_protection() {
 	// Hidden groups should return a 404 for non-members.
 	// Unset the current group so that you're not redirected
 	// to the default group tab.
-	if ( 'hidden' == $current_group->status ) {
+	if ( ! $is_visible ) {
 		buddypress()->groups->current_group = 0;
 		buddypress()->is_single_item        = false;
 		bp_do_404();
@@ -394,7 +395,7 @@ function groups_action_join_group() {
 	if ( !groups_is_user_member( bp_loggedin_user_id(), $bp->groups->current_group->id ) && !groups_is_user_banned( bp_loggedin_user_id(), $bp->groups->current_group->id ) ) {
 
 		// User wants to join a group that is not public.
-		if ( ! bp_groups_group_has_cap( $bp->groups->current_group, 'anyone_can_join' ) ) {
+		if ( 'anyone_can_join' != bp_groups_group_has_cap( $bp->groups->current_group, 'join_method' ) ) {
 			if ( !groups_check_user_has_invite( bp_loggedin_user_id(), $bp->groups->current_group->id ) ) {
 				bp_core_add_message( __( 'There was an error joining the group.', 'buddypress' ), 'error' );
 				bp_core_redirect( bp_get_group_permalink( $bp->groups->current_group ) );
@@ -461,7 +462,7 @@ function groups_action_leave_group() {
 
 		$redirect = bp_get_group_permalink( groups_get_current_group() );
 
-		if( 'hidden' == $bp->groups->current_group->status ) {
+		if ( ! bp_groups_group_has_cap( $bp->groups->current_group, 'show_group' ) ) {
 			$redirect = trailingslashit( bp_loggedin_user_domain() . bp_get_groups_slug() );
 		}
 
@@ -565,3 +566,18 @@ function groups_action_group_feed() {
 	) );
 }
 add_action( 'bp_actions', 'groups_action_group_feed' );
+
+/**
+ * Fire the 'bp_groups_register_group_statuses' action.
+ *
+ * @since 2.7.0
+ */
+function bp_groups_register_group_statuses() {
+	/**
+	 * Fires when it's appropriate to register group statuses.
+	 *
+	 * @since 2.7.0
+	 */
+	do_action( 'bp_groups_register_group_statuses' );
+}
+add_action( 'bp_loaded', 'bp_groups_register_group_statuses' );

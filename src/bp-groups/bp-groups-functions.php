@@ -2457,7 +2457,7 @@ function bp_groups_register_base_group_statuses() {
 
 	$hidden_group_caps = array(
 		'join_method'   => 'invitation_only',
-		'show_group'    => 'member',
+		'show_group'    => array( 'member', 'invited' ), // Invitees must be able to know about hidden groups.
 		'access_group'	=> 'member',
 		'post_in_forum' => 'member',
 	);
@@ -2784,7 +2784,7 @@ function bp_groups_group_capabilities_description( $cap, $value ) {
 			break;
 		case 'show_group' :
 			// @TODO: This could be an array of options.
-			if ( $value ) {
+			if ( 'anyone' == $value ) {
 				$retval = __( 'This group will be listed in the groups directory and in search results.', 'buddypress' );
 			} else {
 				$retval = __( 'This group will not be listed in the groups directory or search results.', 'buddypress' );
@@ -2852,6 +2852,10 @@ function bp_groups_user_meets_access_condition( $access_condition, $group_id = 0
 
 		case 'member' :
 			$meets_condition = groups_is_user_member( $user_id, $group_id );
+			break;
+
+		case 'invited' :
+			$meets_condition = groups_check_user_has_invite( $user_id, $group_id );
 			break;
 
 		case 'loggedin' :

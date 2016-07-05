@@ -534,7 +534,14 @@ class BP_Groups_Group {
 
 		$bp = buddypress();
 
-		return $wpdb->get_col( $wpdb->prepare( "SELECT user_id FROM {$bp->groups->table_name_members} WHERE group_id = %d and is_confirmed = 0 AND inviter_id = %d", $group_id, $user_id ) );
+		// Hide invitations to unknowable groups.
+		$hidden_sql = '';
+		if ( $hidden_group_ids = self::get_hidden_group_ids() ) {
+			$hidden_group_ids = implode( ',', $hidden_group_ids );
+			$hidden_sql = " WHERE group_id NOT IN ({$hidden_group_ids})";
+		}
+
+		return $wpdb->get_col( $wpdb->prepare( "SELECT user_id FROM {$bp->groups->table_name_members} WHERE group_id = %d and is_confirmed = 0 AND inviter_id = %d{$hidden_sql}", $group_id, $user_id ) );
 	}
 
 	/**
@@ -562,7 +569,7 @@ class BP_Groups_Group {
 		if ( empty( $user_id ) )
 			$user_id = bp_displayed_user_id();
 
-		$search_terms_like = bp_esc_like( $filter ) . '%';
+		$search_terms_like = '%' . bp_esc_like( $filter ) . '%';
 
 		$pag_sql = $order_sql = $hidden_sql = '';
 
@@ -578,8 +585,8 @@ class BP_Groups_Group {
 		$bp = buddypress();
 
 		$gids = esc_sql( implode( ',', wp_parse_id_list( $gids['groups'] ) ) );
-
-		$paged_groups = $wpdb->get_results( $wpdb->prepare( "SELECT id as group_id FROM {$bp->groups->table_name} WHERE ( name LIKE %s OR description LIKE %s ) AND id IN ({$gids}) {$pag_sql}", $search_terms_like, $search_terms_like ) );
+$sql = $wpdb->prepare( "SELECT id as group_id FROM {$bp->groups->table_name} WHERE ( name LIKE %s OR description LIKE %s ) AND id IN ({$gids}) {$pag_sql}", $search_terms_like, $search_terms_like );
+		$paged_groups = $wpdb->get_results( $sql );
 		$total_groups = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(id) FROM {$bp->groups->table_name} WHERE ( name LIKE %s OR description LIKE %s ) AND id IN ({$gids})", $search_terms_like, $search_terms_like ) );
 
 		return array( 'groups' => $paged_groups, 'total' => $total_groups );
@@ -849,7 +856,6 @@ class BP_Groups_Group {
 		$sql['where'] = " g.id = gm1.group_id AND g.id = gm2.group_id AND gm2.meta_key = 'last_activity' AND gm1.meta_key = 'total_member_count'";
 
 
-
 		if ( ! empty( $r['search_terms'] ) ) {
 			$search_terms_like = '%' . bp_esc_like( $r['search_terms'] ) . '%';
 			$sql['search'] = $wpdb->prepare( " AND ( g.name LIKE %s OR g.description LIKE %s )", $search_terms_like, $search_terms_like );
@@ -892,15 +898,14 @@ class BP_Groups_Group {
 			$sql['include'] = " AND g.id IN ({$include})";
 		}
 
-
-		if ( empty( $r['show_hidden'] ) || ! empty( $r['exclude'] ) ) {
+		$exclude_group_ids = array();
+		if ( ! $r['show_hidden'] || ! empty( $r['exclude'] ) ) {
 			$hidden_group_ids = array();
-			if ( empty( $r['show_hidden'] ) ) {
+			if ( ! $r['show_hidden'] ) {
 				// Get the groups not visible to this user. Note: this could be empty.
 				$hidden_group_ids = self::get_hidden_group_ids();
 			}
 
-			$exclude_group_ids = array();
 			if ( ! empty( $r['exclude'] ) ) {
 				$exclude_group_ids = wp_parse_id_list( $r['exclude'] );
 			}
@@ -1200,12 +1205,7 @@ class BP_Groups_Group {
 			$search_sql        = $wpdb->prepare( ' AND ( g.name LIKE %s OR g.description LIKE %s ) ', $search_terms_like, $search_terms_like );
 		}
 
-		$hidden_group_ids = array();
-		if ( ! is_user_logged_in() || ( ! bp_current_user_can( 'bp_moderate' ) && ( $user_id != bp_loggedin_user_id() ) ) ) {
-			// @TODO: This is a big if.
-			$hidden_group_ids = self::get_hidden_group_ids();
-		}
-
+		$hidden_group_ids = self::get_hidden_group_ids();
 		$exclude_group_ids = array();
 		if ( ! empty( $exclude ) ) {
 			$exclude_group_ids = wp_parse_id_list( $exclude );
@@ -1214,18 +1214,18 @@ class BP_Groups_Group {
 		if ( $hidden_group_ids || $exclude_group_ids ) {
 			$exclude_group_ids = array_merge( $exclude_group_ids, $hidden_group_ids );
 			$exclude_group_ids = implode( ',', $exclude_group_ids );
-			$sql['exclude'] = " AND g.id NOT IN ({$exclude_group_ids})";
+			$exclude_sql       = " AND g.id NOT IN ({$exclude_group_ids})";
 		}
 
 		$bp = buddypress();
 
 		if ( !empty( $user_id ) ) {
 			$user_id      = absint( esc_sql( $user_id ) );
-			$paged_groups = $wpdb->get_results( "SELECT DISTINCT g.*, gm1.meta_value as total_member_count, gm2.meta_value as last_activity FROM {$bp->groups->table_name_groupmeta} gm1, {$bp->groups->table_name_groupmeta} gm2, {$bp->groups->table_name_groupmeta} gm3, {$bp->groups->table_name_members} m, {$bbdb->forums} f, {$bp->groups->table_name} g WHERE g.id = m.group_id AND g.id = gm1.group_id AND g.id = gm2.group_id AND g.id = gm3.group_id AND gm2.meta_key = 'last_activity' AND gm1.meta_key = 'total_member_count' AND (gm3.meta_key = 'forum_id' AND gm3.meta_value = f.forum_id) AND f.topics > 0 {$search_sql} AND m.user_id = {$user_id} AND m.is_confirmed = 1 AND m.is_banned = 0 {$exclude_sql} ORDER BY f.topics DESC {$pag_sql}" );
-			$total_groups = $wpdb->get_var( "SELECT COUNT(DISTINCT g.id) FROM {$bp->groups->table_name_groupmeta} gm1, {$bp->groups->table_name_groupmeta} gm2, {$bp->groups->table_name_groupmeta} gm3, {$bbdb->forums} f, {$bp->groups->table_name} g WHERE g.id = gm1.group_id AND g.id = gm2.group_id AND g.id = gm3.group_id AND gm2.meta_key = 'last_activity' AND gm1.meta_key = 'total_member_count' AND (gm3.meta_key = 'forum_id' AND gm3.meta_value = f.forum_id) AND f.topics > 0 {$search_sql} AND m.user_id = {$user_id} AND m.is_confirmed = 1 AND m.is_banned = 0 {$exclude_sql}" );
+			$paged_groups = $wpdb->get_results( "SELECT DISTINCT g.*, gm1.meta_value as total_member_count, gm2.meta_value as last_activity FROM {$bp->groups->table_name_groupmeta} gm1, {$bp->groups->table_name_groupmeta} gm2, {$bp->groups->table_name_groupmeta} gm3, {$bp->groups->table_name_members} m, {$bbdb->forums} f, {$bp->groups->table_name} g WHERE g.id = m.group_id AND g.id = gm1.group_id AND g.id = gm2.group_id AND g.id = gm3.group_id AND gm2.meta_key = 'last_activity' AND gm1.meta_key = 'total_member_count' AND (gm3.meta_key = 'forum_id' AND gm3.meta_value = f.forum_id) AND f.topics > 0{$search_sql} AND m.user_id = {$user_id} AND m.is_confirmed = 1 AND m.is_banned = 0{$exclude_sql} ORDER BY f.topics DESC {$pag_sql}" );
+			$total_groups = $wpdb->get_var( "SELECT COUNT(DISTINCT g.id) FROM {$bp->groups->table_name_groupmeta} gm1, {$bp->groups->table_name_groupmeta} gm2, {$bp->groups->table_name_groupmeta} gm3, {$bbdb->forums} f, {$bp->groups->table_name} g WHERE g.id = gm1.group_id AND g.id = gm2.group_id AND g.id = gm3.group_id AND gm2.meta_key = 'last_activity' AND gm1.meta_key = 'total_member_count' AND (gm3.meta_key = 'forum_id' AND gm3.meta_value = f.forum_id) AND f.topics > 0{$search_sql} AND m.user_id = {$user_id} AND m.is_confirmed = 1 AND m.is_banned = 0{$exclude_sql}" );
 		} else {
-			$paged_groups = $wpdb->get_results( "SELECT DISTINCT g.*, gm1.meta_value as total_member_count, gm2.meta_value as last_activity FROM {$bp->groups->table_name_groupmeta} gm1, {$bp->groups->table_name_groupmeta} gm2, {$bp->groups->table_name_groupmeta} gm3, {$bbdb->forums} f, {$bp->groups->table_name} g WHERE g.id = gm1.group_id AND g.id = gm2.group_id AND g.id = gm3.group_id AND gm2.meta_key = 'last_activity' AND gm1.meta_key = 'total_member_count' AND (gm3.meta_key = 'forum_id' AND gm3.meta_value = f.forum_id) AND f.topics > 0 {$search_sql} {$exclude_sql} ORDER BY f.topics DESC {$pag_sql}" );
-			$total_groups = $wpdb->get_var( "SELECT COUNT(DISTINCT g.id) FROM {$bp->groups->table_name_groupmeta} gm1, {$bp->groups->table_name_groupmeta} gm2, {$bp->groups->table_name_groupmeta} gm3, {$bbdb->forums} f, {$bp->groups->table_name} g WHERE g.id = gm1.group_id AND g.id = gm2.group_id AND g.id = gm3.group_id AND gm2.meta_key = 'last_activity' AND gm1.meta_key = 'total_member_count' AND (gm3.meta_key = 'forum_id' AND gm3.meta_value = f.forum_id) AND f.topics > 0 {$search_sql} {$exclude_sql}" );
+			$paged_groups = $wpdb->get_results( "SELECT DISTINCT g.*, gm1.meta_value as total_member_count, gm2.meta_value as last_activity FROM {$bp->groups->table_name_groupmeta} gm1, {$bp->groups->table_name_groupmeta} gm2, {$bp->groups->table_name_groupmeta} gm3, {$bbdb->forums} f, {$bp->groups->table_name} g WHERE g.id = gm1.group_id AND g.id = gm2.group_id AND g.id = gm3.group_id AND gm2.meta_key = 'last_activity' AND gm1.meta_key = 'total_member_count' AND (gm3.meta_key = 'forum_id' AND gm3.meta_value = f.forum_id) AND f.topics > 0{$search_sql}{$exclude_sql} ORDER BY f.topics DESC {$pag_sql}" );
+			$total_groups = $wpdb->get_var( "SELECT COUNT(DISTINCT g.id) FROM {$bp->groups->table_name_groupmeta} gm1, {$bp->groups->table_name_groupmeta} gm2, {$bp->groups->table_name_groupmeta} gm3, {$bbdb->forums} f, {$bp->groups->table_name} g WHERE g.id = gm1.group_id AND g.id = gm2.group_id AND g.id = gm3.group_id AND gm2.meta_key = 'last_activity' AND gm1.meta_key = 'total_member_count' AND (gm3.meta_key = 'forum_id' AND gm3.meta_value = f.forum_id) AND f.topics > 0{$search_sql}{$exclude_sql}" );
 		}
 
 		if ( !empty( $populate_extras ) ) {
@@ -1315,11 +1315,7 @@ class BP_Groups_Group {
 			$search_sql        = $wpdb->prepare( ' AND ( g.name LIKE %s OR g.description LIKE %s ) ', $search_terms_like, $search_terms_like );
 		}
 
-		$hidden_group_ids = array();
-		if ( ! is_user_logged_in() || ( ! bp_current_user_can( 'bp_moderate' ) && ( $user_id != bp_loggedin_user_id() ) ) ) {
-			$hidden_group_ids = self::get_hidden_group_ids();
-		}
-
+		$hidden_group_ids =  self::get_hidden_group_ids();
 		$exclude_group_ids = array();
 		if ( ! empty( $exclude ) ) {
 			$exclude_group_ids = wp_parse_id_list( $exclude );
@@ -1391,11 +1387,7 @@ class BP_Groups_Group {
 
 		$bp = buddypress();
 
-		$hidden_group_ids = array();
-		if ( ! bp_current_user_can( 'bp_moderate' ) ) {
-			$hidden_group_ids = self::get_hidden_group_ids();
-		}
-
+		$hidden_group_ids = self::get_hidden_group_ids();
 		$exclude_group_ids = array();
 		if ( ! empty( $exclude ) ) {
 			$exclude_group_ids = wp_parse_id_list( $exclude );
@@ -1404,7 +1396,7 @@ class BP_Groups_Group {
 		if ( $hidden_group_ids || $exclude_group_ids ) {
 			$exclude_group_ids = array_merge( $exclude_group_ids, $hidden_group_ids );
 			$exclude_group_ids = implode( ',', $exclude_group_ids );
-			$sql['exclude'] = " AND g.id NOT IN ({$exclude_group_ids})";
+			$exclude_sql       = " AND g.id NOT IN ({$exclude_group_ids})";
 		}
 
 		$letter_like = bp_esc_like( $letter ) . '%';
@@ -1413,9 +1405,9 @@ class BP_Groups_Group {
 			$pag_sql      = $wpdb->prepare( " LIMIT %d, %d", intval( ( $page - 1 ) * $limit), intval( $limit ) );
 		}
 
-		$total_groups = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT g.id) FROM {$bp->groups->table_name_groupmeta} gm1, {$bp->groups->table_name_groupmeta} gm2, {$bp->groups->table_name} g WHERE g.id = gm1.group_id AND g.id = gm2.group_id AND gm2.meta_key = 'last_activity' AND gm1.meta_key = 'total_member_count' AND g.name LIKE %s {$exclude_sql}", $letter_like ) );
+		$total_groups = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT g.id) FROM {$bp->groups->table_name_groupmeta} gm1, {$bp->groups->table_name_groupmeta} gm2, {$bp->groups->table_name} g WHERE g.id = gm1.group_id AND g.id = gm2.group_id AND gm2.meta_key = 'last_activity' AND gm1.meta_key = 'total_member_count' AND g.name LIKE %s{$exclude_sql}", $letter_like ) );
 
-		$paged_groups = $wpdb->get_results( $wpdb->prepare( "SELECT g.*, gm1.meta_value as total_member_count, gm2.meta_value as last_activity FROM {$bp->groups->table_name_groupmeta} gm1, {$bp->groups->table_name_groupmeta} gm2, {$bp->groups->table_name} g WHERE g.id = gm1.group_id AND g.id = gm2.group_id AND gm2.meta_key = 'last_activity' AND gm1.meta_key = 'total_member_count' AND g.name LIKE %s {$exclude_sql} ORDER BY g.name ASC {$pag_sql}", $letter_like ) );
+		$paged_groups = $wpdb->get_results( $wpdb->prepare( "SELECT g.*, gm1.meta_value as total_member_count, gm2.meta_value as last_activity FROM {$bp->groups->table_name_groupmeta} gm1, {$bp->groups->table_name_groupmeta} gm2, {$bp->groups->table_name} g WHERE g.id = gm1.group_id AND g.id = gm2.group_id AND gm2.meta_key = 'last_activity' AND gm1.meta_key = 'total_member_count' AND g.name LIKE %s{$exclude_sql} ORDER BY g.name ASC {$pag_sql}", $letter_like ) );
 
 		if ( !empty( $populate_extras ) ) {
 			foreach ( (array) $paged_groups as $group ) {
@@ -1466,11 +1458,7 @@ class BP_Groups_Group {
 			$search_sql = $wpdb->prepare( " AND ( g.name LIKE %s OR g.description LIKE %s )", $search_terms_like, $search_terms_like );
 		}
 
-		$hidden_group_ids = array();
-		if ( ! is_user_logged_in() || ( ! bp_current_user_can( 'bp_moderate' ) && ( $user_id != bp_loggedin_user_id() ) ) ) {
-			$hidden_group_ids = self::get_hidden_group_ids();
-		}
-
+		$hidden_group_ids = self::get_hidden_group_ids();
 		$exclude_group_ids = array();
 		if ( ! empty( $exclude ) ) {
 			$exclude_group_ids = wp_parse_id_list( $exclude );
@@ -1479,18 +1467,18 @@ class BP_Groups_Group {
 		if ( $hidden_group_ids || $exclude_group_ids ) {
 			$exclude_group_ids = array_merge( $exclude_group_ids, $hidden_group_ids );
 			$exclude_group_ids = implode( ',', $exclude_group_ids );
-			$sql['exclude'] = " AND g.id NOT IN ({$exclude_group_ids})";
+			$exclude_sql       = " AND g.id NOT IN ({$exclude_group_ids})";
 		}
 
 		$bp = buddypress();
 
 		if ( !empty( $user_id ) ) {
 			$user_id = esc_sql( $user_id );
-			$paged_groups = $wpdb->get_results( "SELECT g.*, gm1.meta_value as total_member_count, gm2.meta_value as last_activity FROM {$bp->groups->table_name_groupmeta} gm1, {$bp->groups->table_name_groupmeta} gm2, {$bp->groups->table_name_members} m, {$bp->groups->table_name} g WHERE g.id = m.group_id AND g.id = gm1.group_id AND g.id = gm2.group_id AND gm2.meta_key = 'last_activity' AND gm1.meta_key = 'total_member_count' {$search_sql} AND m.user_id = {$user_id} AND m.is_confirmed = 1 AND m.is_banned = 0 {$exclude_sql} ORDER BY rand() {$pag_sql}" );
-			$total_groups = $wpdb->get_var( "SELECT COUNT(DISTINCT m.group_id) FROM {$bp->groups->table_name_members} m LEFT JOIN {$bp->groups->table_name_groupmeta} gm ON m.group_id = gm.group_id INNER JOIN {$bp->groups->table_name} g ON m.group_id = g.id WHERE gm.meta_key = 'last_activity' {$search_sql} AND m.user_id = {$user_id} AND m.is_confirmed = 1 AND m.is_banned = 0 {$exclude_sql}" );
+			$paged_groups = $wpdb->get_results( "SELECT g.*, gm1.meta_value as total_member_count, gm2.meta_value as last_activity FROM {$bp->groups->table_name_groupmeta} gm1, {$bp->groups->table_name_groupmeta} gm2, {$bp->groups->table_name_members} m, {$bp->groups->table_name} g WHERE g.id = m.group_id AND g.id = gm1.group_id AND g.id = gm2.group_id AND gm2.meta_key = 'last_activity' AND gm1.meta_key = 'total_member_count' {$search_sql} AND m.user_id = {$user_id} AND m.is_confirmed = 1 AND m.is_banned = 0{$exclude_sql} ORDER BY rand() {$pag_sql}" );
+			$total_groups = $wpdb->get_var( "SELECT COUNT(DISTINCT m.group_id) FROM {$bp->groups->table_name_members} m LEFT JOIN {$bp->groups->table_name_groupmeta} gm ON m.group_id = gm.group_id INNER JOIN {$bp->groups->table_name} g ON m.group_id = g.id WHERE gm.meta_key = 'last_activity' {$search_sql} AND m.user_id = {$user_id} AND m.is_confirmed = 1 AND m.is_banned = 0{$exclude_sql}" );
 		} else {
-			$paged_groups = $wpdb->get_results( "SELECT g.*, gm1.meta_value as total_member_count, gm2.meta_value as last_activity FROM {$bp->groups->table_name_groupmeta} gm1, {$bp->groups->table_name_groupmeta} gm2, {$bp->groups->table_name} g WHERE g.id = gm1.group_id AND g.id = gm2.group_id AND gm2.meta_key = 'last_activity' AND gm1.meta_key = 'total_member_count' {$search_sql} {$exclude_sql} ORDER BY rand() {$pag_sql}" );
-			$total_groups = $wpdb->get_var( "SELECT COUNT(DISTINCT g.id) FROM {$bp->groups->table_name_groupmeta} gm INNER JOIN {$bp->groups->table_name} g ON gm.group_id = g.id WHERE gm.meta_key = 'last_activity' {$search_sql} {$exclude_sql}" );
+			$paged_groups = $wpdb->get_results( "SELECT g.*, gm1.meta_value as total_member_count, gm2.meta_value as last_activity FROM {$bp->groups->table_name_groupmeta} gm1, {$bp->groups->table_name_groupmeta} gm2, {$bp->groups->table_name} g WHERE g.id = gm1.group_id AND g.id = gm2.group_id AND gm2.meta_key = 'last_activity' AND gm1.meta_key = 'total_member_count'{$search_sql}{$exclude_sql} ORDER BY rand() {$pag_sql}" );
+			$total_groups = $wpdb->get_var( "SELECT COUNT(DISTINCT g.id) FROM {$bp->groups->table_name_groupmeta} gm INNER JOIN {$bp->groups->table_name} g ON gm.group_id = g.id WHERE gm.meta_key = 'last_activity'{$search_sql}{$exclude_sql}" );
 		}
 
 		if ( !empty( $populate_extras ) ) {
@@ -1703,7 +1691,6 @@ class BP_Groups_Group {
 			case 'all' :
 				$status_sql = '';
 				break;
-			// @TODO: Update this?
 			case 'hidden' :
 				$status_sql = "AND g.status = 'hidden'";
 				break;
@@ -1837,6 +1824,8 @@ class BP_Groups_Group {
 	 * @return array $hidden_group_ids
 	 */
 	protected static function get_hidden_group_ids() {
+		// @TODO: Should this short-circuit for site admins?
+
 		// Check cache for group data.
 		$cache_key = 'hidden_groups_for_user_' . bp_loggedin_user_id();
 		$hidden_group_ids = wp_cache_get( $cache_key, 'bp_groups' );

@@ -586,8 +586,7 @@ class BP_Group_Extension {
 				$group = groups_get_group( array(
 					'group_id' => $this->group_id,
 				) );
-
-				if ( ! empty( $group->status ) && 'public' === $group->status ) {
+				if ( 'anyone' != bp_groups_group_has_cap( $group, 'access_group' ) ) {
 					// Tabs in public groups are accessible to anyone by default.
 					$this->params['access'] = 'anyone';
 				} else {

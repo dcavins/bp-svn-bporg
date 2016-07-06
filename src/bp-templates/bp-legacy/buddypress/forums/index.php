@@ -181,7 +181,7 @@
 
 						<?php while ( bp_groups() ) : bp_the_group(); ?>
 
-							<?php if ( bp_group_is_forum_enabled() && ( bp_current_user_can( 'bp_moderate' ) || 'public' == bp_get_group_status() || bp_group_is_member() ) ) : ?>
+							<?php if ( bp_group_is_forum_enabled() && ( bp_current_user_can( 'bp_moderate' ) || 'anyone' != bp_groups_group_has_cap( $group, 'post_in_forum' ) || bp_group_is_member() ) ) : ?>
 
 								<option value="<?php bp_group_id(); ?>"><?php bp_group_name(); ?></option>
 

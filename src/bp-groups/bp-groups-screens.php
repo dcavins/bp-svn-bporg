@@ -214,7 +214,7 @@ function groups_screen_group_forum() {
 			check_admin_referer( 'bp_forums_new_reply' );
 
 			// Auto join this user if they are not yet a member of this group.
-			if ( bp_groups_auto_join() && !bp_current_user_can( 'bp_moderate' ) && 'public' == $bp->groups->current_group->status && !groups_is_user_member( bp_loggedin_user_id(), $bp->groups->current_group->id ) ) {
+			if ( bp_groups_auto_join() && !bp_current_user_can( 'bp_moderate' ) && 'anyone_can_join' == bp_groups_group_has_cap( $bp->groups->current_group, 'join_method' ) && !groups_is_user_member( bp_loggedin_user_id(), $bp->groups->current_group->id ) ) {
 				groups_join_group( $bp->groups->current_group->id, bp_loggedin_user_id() );
 			}
 
@@ -521,7 +521,7 @@ function groups_screen_group_forum() {
 			if ( $user_is_banned ) {
 				$error_message = __( "You have been banned from this group.", 'buddypress' );
 
-			} elseif ( bp_groups_auto_join() && !bp_current_user_can( 'bp_moderate' ) && 'public' == $bp->groups->current_group->status && !groups_is_user_member( bp_loggedin_user_id(), $bp->groups->current_group->id ) ) {
+			} elseif ( bp_groups_auto_join() && !bp_current_user_can( 'bp_moderate' ) && 'anyone_can_join' == bp_groups_group_has_cap( $bp->groups->current_group, 'join_method' ) && !groups_is_user_member( bp_loggedin_user_id(), $bp->groups->current_group->id ) ) {
 				// Auto join this user if they are not yet a member of this group.
 				groups_join_group( $bp->groups->current_group->id, bp_loggedin_user_id() );
 			}
@@ -715,7 +715,7 @@ function groups_screen_group_request_membership() {
 
 	$bp = buddypress();
 
-	if ( 'private' != $bp->groups->current_group->status )
+	if ( 'accepts_membership_requests' != bp_groups_group_has_cap( $bp->groups->current_group, 'join_method' ) )
 		return false;
 
 	// If the user is already invited, accept invitation.
@@ -903,7 +903,7 @@ function groups_screen_group_admin_settings() {
 
 		// Checked against a whitelist for security.
 		/** This filter is documented in bp-groups/bp-groups-admin.php */
-		$allowed_status = apply_filters( 'groups_allowed_status', array( 'public', 'private', 'hidden' ) );
+		$allowed_status = apply_filters( 'groups_allowed_status', bp_groups_get_group_statuses( array(), 'names' ) );
 		$status         = ( in_array( $_POST['group-status'], (array) $allowed_status ) ) ? $_POST['group-status'] : 'public';
 
 		// Checked against a whitelist for security.
@@ -1269,7 +1269,7 @@ function groups_screen_group_admin_requests() {
 		return false;
 	}
 
-	if ( ! bp_is_item_admin() || ( 'public' == $bp->groups->current_group->status ) ) {
+	if ( ! bp_is_item_admin() || 'accepts_membership_requests' != bp_groups_group_has_cap( groups_get_current_group(), 'join_method' ) ) {
 		return false;
 	}
 

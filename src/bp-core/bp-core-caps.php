@@ -277,8 +277,7 @@ function bp_current_user_can( $capability, $args = array() ) {
 		$blog_id = bp_get_root_blog_id();
 	}
 
-	$args   = array( $blog_id, $capability, $args );
-	$retval = call_user_func_array( 'current_user_can_for_blog', $args );
+	$retval = call_user_func_array( 'current_user_can_for_blog', array( $blog_id, $capability, $args ) );
 
 	/**
 	 * Filters whether or not the current user has a given capability.
@@ -319,8 +318,7 @@ function bp_user_can( $user_id, $capability, $args = array() ) {
 	}
 
 	$switched = is_multisite() ? switch_to_blog( $site_id ) : false;
-	$args     = array( $user_id, $capability, $args );
-	$retval   = call_user_func_array( 'user_can', $args );
+	$retval   = call_user_func_array( 'user_can', array( $user_id, $capability, $args ) );
 
 	/**
 	 * Filters whether or not the specified user has a given capability on a given site.

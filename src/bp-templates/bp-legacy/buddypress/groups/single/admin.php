@@ -145,6 +145,57 @@ do_action( 'bp_before_group_admin_content' ); ?>
 
 	<hr />
 
+	<?php if ( bp_allow_hierarchical_groups() ) : ?>
+
+		<h4><?php _e( 'Group Hierarchy', 'buddypress' ); ?></h4>
+
+		<label for="parent_id">Parent Group</label>
+			<?php
+			$current_parent_group_id = bp_groups_get_parent_group_id();
+			$possible_parent_groups = bp_groups_get_possible_parent_groups( bp_get_current_group_id(), bp_loggedin_user_id() );
+			if ( $possible_parent_groups ) :
+				?>
+				<select name="parent-id">
+					<option value="0" <?php selected( 0, $current_parent_group_id ); ?>><?php echo _x( 'None selected', 'The option that sets a group to be a top-level group and have no parent.', 'buddypress' ); ?></option>
+				<?php foreach ( $possible_parent_groups as $possible_parent_group ) {
+					?>
+					<option value="<?php echo $possible_parent_group->id; ?>" <?php selected( $current_parent_group_id, $possible_parent_group->id ); ?>><?php echo $possible_parent_group->name; ?></option>
+					<?php
+				}
+				?>
+				</select>
+				<?php
+			else :
+				?>
+				<p><?php echo __( 'There are no groups available to be a parent to this group.', 'buddypress' ); ?></p>
+				<?php
+			endif;
+			?>
+
+		<fieldset class="radio">
+
+			<legend><?php _e( 'Which members of this group are allowed to create subgroups?', 'buddypress' ); ?></legend>
+
+			<?php
+			$subgroup_creators = groups_get_groupmeta( bp_get_current_group_id(), 'allowed_subgroup_creators' );
+			if ( ! $subgroup_creators ) {
+				$subgroup_creators = 'noone';
+			}
+			?>
+
+			<label for="allowed-subgroup-creators-members"><input type="radio" name="allowed-subgroup-creators" id="allowed-subgroup-creators-members" value="member" <?php checked( $subgroup_creators, 'member' ); ?> /> <?php _e( 'All group members', 'buddypress' ); ?></label>
+
+			<label for="allowed-subgroup-creators-mods"><input type="radio" name="allowed-subgroup-creators" id="allowed-subgroup-creators-mods" value="mod" <?php checked( $subgroup_creators, 'mod' ); ?> /> <?php _e( 'Group admins and mods only', 'buddypress' ); ?></label>
+
+			<label for="allowed-subgroup-creators-admins"><input type="radio" name="allowed-subgroup-creators" id="allowed-subgroup-creators-admins" value="admin" <?php checked( $subgroup_creators, 'admin' ); ?> /> <?php _e( 'Group admins only', 'buddypress' ); ?></label>
+
+			<label for="allowed-subgroup-creators-noone"><input type="radio" name="allowed-subgroup-creators" id="allowed-subgroup-creators-noone" value="noone" <?php checked( $subgroup_creators, 'noone' ); ?> /> <?php _e( 'No one', 'buddypress' ); ?></label>
+		</fieldset>
+
+	<hr />
+
+	<?php endif; ?>
+
 	<?php
 
 	/**

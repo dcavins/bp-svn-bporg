@@ -719,6 +719,27 @@ function bp_restrict_group_creation( $default = true ) {
 }
 
 /**
+ * Are hierarchical groups allowed?
+ *
+ * @since 2.7.0
+ *
+ * @param bool $default Optional. Fallback value if not found in the database.
+ *                      Default: false.
+ * @return bool True if hierarchical groups are allowed, otherwise false.
+ */
+function bp_allow_hierarchical_groups( $default = false ) {
+
+	/**
+	 * Filters whether or not hierarchical groups are allowed.
+	 *
+	 * @since 2.7.0
+	 *
+	 * @param bool $value Whether or not hierarchical groups are allowed.
+	 */
+	return (bool) apply_filters( 'bp_allow_hierarchical_groups', (bool) bp_get_option( 'bp_allow_hierarchical_groups', $default ) );
+}
+
+/**
  * Should the old BuddyBar be forced in place of the WP admin bar?
  *
  * @since 1.6.0

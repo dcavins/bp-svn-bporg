@@ -346,3 +346,81 @@ function bp_groups_default_avatar( $avatar, $params ) {
 
 	return $avatar;
 }
+
+
+/**
+ * Determine whether the current user can create a subgroup of a particular group.
+ *
+ * @since 2.7.0
+ *
+ * @param bool   $retval     Whether or not the current user has the capability.
+ * @param string $capability The capability being checked for.
+ * @param int    $site_id    Site ID. Defaults to the BP root blog.
+ * @param array  $args       Array of extra arguments passed.
+ *
+ * @return bool
+ */
+function bp_groups_current_user_can_create_subgroups( $retval, $capability, $site_id, $args ) {
+	if ( 'create_subgroups' != $capability ) {
+		return $retval;
+	}
+
+	$user_id = bp_loggedin_user_id();
+	return bp_groups_user_can_create_subgroups( $retval, $user_id, $capability, $site_id, $args );
+}
+add_filter( 'bp_current_user_can', 'bp_groups_current_user_can_create_subgroups', 10, 4 );
+
+/**
+ * Determine whether a specific user can create a subgroup of a particular group.
+ *
+ * @since 2.7.0
+ *
+ * @param bool   $retval     Whether or not the current user has the capability.
+ * @param int    $user_id    ID of user to check.
+ * @param string $capability The capability being checked for.
+ * @param int    $site_id    Site ID. Defaults to the BP root blog.
+ * @param array  $args       Array of extra arguments passed.
+ *
+ * @return bool
+ */
+function bp_groups_user_can_create_subgroups( $retval, $user_id, $capability, $site_id, $args ) {
+	if ( 'create_subgroups' != $capability ) {
+		return $retval;
+	}
+
+	if ( ! bp_allow_hierarchical_groups() ) {
+		return false;
+	}
+
+	// We need to know which group is in question.
+	if ( empty( $args['group_id'] ) ) {
+		return false;
+	}
+	$group_id = (int) $args['group_id'];
+
+	// Possible settings for the group meta setting 'allowed_subgroup_creators'
+	$creator_setting = groups_get_groupmeta( $group_id, 'allowed_subgroup_creators' );
+	switch ( $creator_setting ) {
+		case 'admin' :
+			$retval = groups_is_user_admin( $user_id, $group_id );
+			break;
+
+		case 'mod' :
+			$retval = ( groups_is_user_mod( $user_id, $group_id ) ||
+						groups_is_user_admin( $user_id, $group_id ) );
+			break;
+
+		case 'member' :
+			$retval = groups_is_user_member( $user_id, $group_id );
+			break;
+
+		case 'noone' :
+		default :
+			// @TODO: This seems weird, but I can imagine situations where only site admins should be able to associate groups.
+			$retval = bp_user_can( $user_id, 'bp_moderate' );
+			break;
+	}
+
+	return $retval;
+}
+add_filter( 'bp_user_can', 'bp_groups_user_can_create_subgroups', 10, 5 );

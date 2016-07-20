@@ -429,6 +429,10 @@ class BP_Admin {
 			add_settings_field( 'bp_restrict_group_creation', __( 'Group Creation', 'buddypress' ), 'bp_admin_setting_callback_group_creation',   'buddypress', 'bp_groups' );
 			register_setting( 'buddypress', 'bp_restrict_group_creation', 'intval' );
 
+			// Allow hierarchical groups.
+			add_settings_field( 'bp_allow_hierarchical_groups', __( 'Hierarchical Groups', 'buddypress' ), 'bp_admin_setting_callback_allow_hierarchical_groups',   'buddypress', 'bp_groups' );
+			register_setting( 'buddypress', 'bp_allow_hierarchical_groups', 'intval' );
+
 			// Allow group avatars.
 			add_settings_field( 'bp-disable-group-avatar-uploads', __( 'Group Photo Uploads', 'buddypress' ), 'bp_admin_setting_callback_group_avatar_uploads', 'buddypress', 'bp_groups' );
 			register_setting( 'buddypress', 'bp-disable-group-avatar-uploads', 'intval' );

@@ -205,7 +205,13 @@ function groups_action_create_group() {
 			elseif ( 'hidden' == $_POST['group-status'] )
 				$group_status = 'hidden';
 
-			if ( !$bp->groups->new_group_id = groups_create_group( array( 'group_id' => $bp->groups->new_group_id, 'status' => $group_status, 'enable_forum' => $group_enable_forum ) ) ) {
+			// Hierarchical groups: Setting the parent ID.
+			$parent_id = 0;
+			if ( bp_allow_hierarchical_groups() && isset( $_POST['parent-id'] ) ) {
+				$parent_id = intval( $_POST['parent-id'] );
+			}
+
+			if ( !$bp->groups->new_group_id = groups_create_group( array( 'group_id' => $bp->groups->new_group_id, 'status' => $group_status, 'enable_forum' => $group_enable_forum, 'parent_id' => $parent_id ) ) ) {
 				bp_core_add_message( __( 'There was an error saving group details. Please try again.', 'buddypress' ), 'error' );
 				bp_core_redirect( trailingslashit( bp_get_groups_directory_permalink() . 'create/step/' . bp_get_groups_current_create_step() ) );
 			}
@@ -566,3 +572,51 @@ function groups_action_group_feed() {
 	) );
 }
 add_action( 'bp_actions', 'groups_action_group_feed' );
+
+/**
+ * Update orphaned child groups when the parent is deleted.
+ *
+ * @since 2.7.0
+ *
+ * @param BP_Groups_Group $group Instance of the group item being deleted.
+ */
+function bp_update_orphaned_groups_on_group_delete( $group ) {
+	// Get child groups and set the parent to the deleted parent's parent.
+	$grandparent_group_id = ! empty( $group->parent_id ) ? $group->parent_id : 0;
+	$children = bp_groups_get_child_groups( $group->id );
+
+	foreach ( $children as $cgroup ) {
+		$child_group = groups_get_group( array( 'group_id' => $cgroup->id ) );
+		$child_group->parent_id = $grandparent_group_id;
+		$child_group->save();
+	}
+}
+add_action( 'bp_groups_delete_group', 'bp_update_orphaned_groups_on_group_delete', 10, 2 );
+
+/**
+ * Save a group's allowed_subgroup_creators setting as group metadata.
+ *
+ * @since 2.7.0
+ *
+ * @param int    $group_id   ID of the group to update.
+ */
+function bp_groups_settings_save_allowed_subgroups_creators( $group_id ) {
+	if ( bp_allow_hierarchical_groups() &&
+		 isset( $_POST['allowed-subgroup-creators'] ) &&
+		 in_array( $_POST['allowed-subgroup-creators'], array( 'noone', 'admin', 'mod', 'member' ) ) ) {
+		groups_update_groupmeta( $group_id, 'allowed_subgroup_creators', $_POST['allowed-subgroup-creators'] );
+	}
+}
+add_action( 'groups_group_settings_edited', 'bp_groups_settings_save_allowed_subgroups_creators' );
+add_action( 'bp_group_admin_edit_after', 'bp_groups_settings_save_allowed_subgroups_creators' );
+
+/**
+ * Save a group's allowed_subgroup_creators setting from the create group screen.
+ *
+ * @since 2.7.0
+ */
+function bp_groups_create_step_save_allowed_subgroups_creators() {
+	$group_id = buddypress()->groups->new_group_id;
+	bp_groups_settings_save_allowed_subgroups_creators( $group_id );
+}
+add_action( 'groups_create_group_step_save_group-settings', 'bp_groups_create_step_save_allowed_subgroups_creators' );

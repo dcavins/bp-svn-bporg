@@ -137,6 +137,8 @@ function bp_groups_directory_permalink() {
  *                                            about groups. Default: true.
  *     @type array|string $exclude            Array or comma-separated list of group IDs. Results will exclude
  *                                            the listed groups. Default: false.
+ *     @type array|string $parent_id          Array or comma-separated list of group IDs. Results will include only
+ *                                            child groups of the listed groups. Default: false.
  *     @type bool         $update_meta_cache  Whether to fetch groupmeta for queried groups. Default: true.
  * }
  * @return bool True if there are groups to display that match the params
@@ -150,6 +152,7 @@ function bp_has_groups( $args = '' ) {
 	$slug         = false;
 	$type         = '';
 	$search_terms = false;
+	$parent_id    = false;
 
 	// When looking your own groups, check for two action variables.
 	if ( bp_is_current_action( 'my-groups' ) ) {
@@ -198,6 +201,7 @@ function bp_has_groups( $args = '' ) {
 		'meta_query'         => false,
 		'include'            => false,
 		'exclude'            => false,
+		'parent_id'          => $parent_id,
 		'populate_extras'    => true,
 		'update_meta_cache'  => true,
 	), 'has_groups' );
@@ -221,6 +225,7 @@ function bp_has_groups( $args = '' ) {
 		'meta_query'         => $r['meta_query'],
 		'include'            => $r['include'],
 		'exclude'            => $r['exclude'],
+		'parent_id'          => $r['parent_id'],
 		'populate_extras'    => (bool) $r['populate_extras'],
 		'update_meta_cache'  => (bool) $r['update_meta_cache'],
 	) );

@@ -608,6 +608,35 @@ function groups_screen_group_members() {
 }
 
 /**
+ * Handle the display of a group's subgroup directory.
+ *
+ * @since 2.7.0
+ */
+function groups_screen_subgroup_directory() {
+
+	if ( ! bp_is_single_item() )
+		return false;
+
+	/**
+	 * Fires before the loading of a group's subgroups page.
+	 *
+	 * @since 2.7.0
+	 *
+	 * @param int $id ID of the group whose subgroups are being displayed.
+	 */
+	do_action( 'groups_screen_subgroup_directory', bp_get_current_group_id() );
+
+	/**
+	 * Filters the template to load for a group's subgroups page.
+	 *
+	 * @since 2.7.0
+	 *
+	 * @param string $value Path to a group's subgroups template.
+	 */
+	bp_core_load_template( apply_filters( 'groups_template_subgroup_directory', 'groups/single/home' ) );
+}
+
+/**
  * Handle the display of a group's Send Invites page.
  *
  * @since 1.0.0
@@ -911,11 +940,14 @@ function groups_screen_group_admin_settings() {
 		$allowed_invite_status = apply_filters( 'groups_allowed_invite_status', array( 'members', 'mods', 'admins' ) );
 		$invite_status	       = isset( $_POST['group-invite-status'] ) && in_array( $_POST['group-invite-status'], (array) $allowed_invite_status ) ? $_POST['group-invite-status'] : 'members';
 
+		// Set a parent group ID.
+		$parent_id = ( isset( $_POST['parent-id'] ) ) ? (int) $_POST['parent-id'] : 0;
+
 		// Check the nonce.
 		if ( !check_admin_referer( 'groups_edit_group_settings' ) )
 			return false;
 
-		if ( !groups_edit_group_settings( $_POST['group-id'], $enable_forum, $status, $invite_status ) ) {
+		if ( !groups_edit_group_settings( $_POST['group-id'], $enable_forum, $status, $invite_status, $parent_id ) ) {
 			bp_core_add_message( __( 'There was an error updating group settings. Please try again.', 'buddypress' ), 'error' );
 		} else {
 			bp_core_add_message( __( 'Group settings were successfully updated.', 'buddypress' ) );

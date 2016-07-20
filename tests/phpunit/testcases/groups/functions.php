@@ -664,4 +664,399 @@ Bar!';
 		groups_accept_invite( $u2, $g );
 		$this->assertEquals( 0, groups_get_invite_count_for_user( $u2 ) );
 	}
+
+
+	/**
+	 * @group hierarchical_groups
+	 */
+	public function test_update_orphaned_groups_on_group_delete_top_level() {
+		$g1 = $this->factory->group->create();
+		$g2 = $this->factory->group->create( array(
+			'parent_id' => $g1,
+		) );
+
+		groups_delete_group( $g1 );
+
+		$child = groups_get_group( array( 'group_id' => $g2 ) );
+		$this->assertEquals( 0, $child->parent_id );
+	}
+
+	/**
+	 * @group hierarchical_groups
+	 */
+	public function test_update_orphaned_groups_on_group_delete_two_levels() {
+		$g1 = $this->factory->group->create();
+		$g2 = $this->factory->group->create( array(
+			'parent_id' => $g1,
+		) );
+		$g3 = $this->factory->group->create( array(
+			'parent_id' => $g2,
+		) );
+
+		groups_delete_group( $g2 );
+
+		$child = groups_get_group( array( 'group_id' => $g3 ) );
+		$this->assertEquals( $g1, $child->parent_id );
+	}
+
+	/**
+	 * @group hierarchical_groups
+	 */
+	public function test_bp_groups_get_child_groups_no_user_scope() {
+		$g1 = $this->factory->group->create();
+		$g2 = $this->factory->group->create( array(
+			'parent_id' => $g1,
+		) );
+		$g3 = $this->factory->group->create( array(
+			'parent_id' => $g1,
+			'status'    => 'hidden',
+		) );
+
+		$children = bp_groups_get_child_groups( $g1 );
+		$found = wp_list_pluck( $children, 'id' );
+
+		$this->assertEqualSets( array( $g2, $g3), $found );
+	}
+
+	/**
+	 * @group hierarchical_groups
+	 */
+	public function test_bp_groups_get_child_groups_user_scope_logged_out() {
+		$g1 = $this->factory->group->create();
+		$g2 = $this->factory->group->create( array(
+			'parent_id' => $g1,
+		) );
+		$g3 = $this->factory->group->create( array(
+			'parent_id' => $g1,
+			'status'    => 'hidden',
+		) );
+
+		$children = bp_groups_get_child_groups( $g1, 0 );
+		$found = wp_list_pluck( $children, 'id' );
+
+		$this->assertEqualSets( array( $g2 ), $found );
+	}
+
+	/**
+	 * @group hierarchical_groups
+	 */
+	public function test_bp_groups_get_child_groups_user_scope_not_group_member() {
+		$g1 = $this->factory->group->create();
+		$g2 = $this->factory->group->create( array(
+			'parent_id' => $g1,
+		) );
+		$g3 = $this->factory->group->create( array(
+			'parent_id' => $g1,
+			'status'    => 'hidden',
+		) );
+		$u1 = $this->factory->user->create();
+
+		$children = bp_groups_get_child_groups( $g1, $u1 );
+		$found = wp_list_pluck( $children, 'id' );
+
+		$this->assertEqualSets( array( $g2 ), $found );
+	}
+
+	/**
+	 * @group hierarchical_groups
+	 */
+	public function test_bp_groups_get_child_groups_user_scope_group_member() {
+		$u1 = $this->factory->user->create();
+		$g1 = $this->factory->group->create();
+		$g2 = $this->factory->group->create( array(
+			'parent_id' => $g1,
+		) );
+		$g3 = $this->factory->group->create( array(
+			'parent_id'  => $g1,
+			'status'     => 'hidden',
+			'creator_id' => $u1,
+		) );
+
+		$children = bp_groups_get_child_groups( $g1, $u1 );
+		$found = wp_list_pluck( $children, 'id' );
+
+		$this->assertEqualSets( array( $g2, $g3 ), $found );
+	}
+
+	/**
+	 * @group hierarchical_groups
+	 */
+	public function test_bp_groups_get_child_groups_user_scope_site_admin() {
+		$u1 = $this->factory->user->create( array( 'role' => 'administrator' ) );
+		$g1 = $this->factory->group->create();
+		$g2 = $this->factory->group->create( array(
+			'parent_id' => $g1,
+		) );
+		$g3 = $this->factory->group->create( array(
+			'parent_id'  => $g1,
+			'status'     => 'hidden',
+		) );
+
+		$children = bp_groups_get_child_groups( $g1, $u1 );
+		$found = wp_list_pluck( $children, 'id' );
+
+		$this->assertEqualSets( array( $g2, $g3 ), $found );
+	}
+
+	/**
+	 * @group hierarchical_groups
+	 */
+	public function test_bp_groups_get_descendant_groups_no_user_scope() {
+		$g1 = $this->factory->group->create();
+		$g2 = $this->factory->group->create( array(
+			'parent_id' => $g1,
+		) );
+		$g3 = $this->factory->group->create( array(
+			'parent_id' => $g1,
+			'status'    => 'hidden',
+		) );
+		$g4 = $this->factory->group->create( array(
+			'parent_id' => $g2,
+		) );
+		$g5 = $this->factory->group->create();
+
+		$children = bp_groups_get_descendant_groups( $g1 );
+		$found = wp_list_pluck( $children, 'id' );
+
+		$this->assertEqualSets( array( $g2, $g3, $g4 ), $found );
+	}
+
+	/**
+	 * @group hierarchical_groups
+	 */
+	public function test_bp_groups_get_descendant_groups_user_scope_logged_out() {
+		$g1 = $this->factory->group->create();
+		$g2 = $this->factory->group->create( array(
+			'parent_id' => $g1,
+		) );
+		$g3 = $this->factory->group->create( array(
+			'parent_id' => $g1,
+			'status'    => 'hidden',
+		) );
+		$g4 = $this->factory->group->create( array(
+			'parent_id' => $g2,
+		) );
+		$g5 = $this->factory->group->create();
+
+		$children = bp_groups_get_descendant_groups( $g1, 0 );
+		$found = wp_list_pluck( $children, 'id' );
+
+		$this->assertEqualSets( array( $g2, $g4 ), $found );
+	}
+
+	/**
+	 * @group hierarchical_groups
+	 */
+	public function test_bp_groups_get_descendant_groups_user_scope_not_group_member() {
+		$g1 = $this->factory->group->create();
+		$g2 = $this->factory->group->create( array(
+			'parent_id' => $g1,
+		) );
+		$g3 = $this->factory->group->create( array(
+			'parent_id' => $g1,
+			'status'    => 'hidden',
+		) );
+		$g4 = $this->factory->group->create( array(
+			'parent_id' => $g2,
+		) );
+		$g5 = $this->factory->group->create();
+		$u1 = $this->factory->user->create();
+
+		$children = bp_groups_get_descendant_groups( $g1, $u1 );
+		$found = wp_list_pluck( $children, 'id' );
+
+		$this->assertEqualSets( array( $g2, $g4 ), $found );
+	}
+
+	/**
+	 * @group hierarchical_groups
+	 */
+	public function test_bp_groups_get_descendant_groups_user_scope_group_member() {
+		$u1 = $this->factory->user->create();
+		$g1 = $this->factory->group->create();
+		$g2 = $this->factory->group->create( array(
+			'parent_id' => $g1,
+		) );
+		$g3 = $this->factory->group->create( array(
+			'parent_id'  => $g1,
+			'status'     => 'hidden',
+			'creator_id' => $u1,
+		) );
+		$g4 = $this->factory->group->create( array(
+			'parent_id' => $g2,
+		) );
+		$g5 = $this->factory->group->create();
+
+		$children = bp_groups_get_descendant_groups( $g1, $u1 );
+		$found = wp_list_pluck( $children, 'id' );
+
+		$this->assertEqualSets( array( $g2, $g3, $g4 ), $found );
+	}
+
+	/**
+	 * @group hierarchical_groups
+	 */
+	public function test_bp_groups_get_descendant_groups_user_scope_site_admin() {
+		// @TODO: This doesn't seem to be making $u1 a site admin (can bp_moderate)
+		$u1 = $this->factory->user->create( array( 'role' => 'administrator' ) );
+		$this->grant_super_admin( $u1 );
+		$g1 = $this->factory->group->create();
+		$g2 = $this->factory->group->create( array(
+			'parent_id' => $g1,
+		) );
+		$g3 = $this->factory->group->create( array(
+			'parent_id'  => $g1,
+			'status'     => 'hidden',
+		) );
+		$g4 = $this->factory->group->create( array(
+			'parent_id' => $g2,
+		) );
+		$g5 = $this->factory->group->create();
+
+		$children = bp_groups_get_descendant_groups( $g1, $u1 );
+		$found = wp_list_pluck( $children, 'id' );
+
+		$this->assertEqualSets( array( $g2, $g3, $g4 ), $found );
+	}
+
+	/**
+	 * @group hierarchical_groups
+	 */
+	public function test_bp_groups_get_ancestor_group_ids_no_user_scope() {
+		$g1 = $this->factory->group->create();
+		$g2 = $this->factory->group->create( array(
+			'parent_id' => $g1,
+		) );
+		$g3 = $this->factory->group->create( array(
+			'parent_id' => $g1,
+			'status'    => 'hidden',
+		) );
+		$g4 = $this->factory->group->create( array(
+			'parent_id' => $g2,
+		) );
+		$g5 = $this->factory->group->create();
+
+		$children = bp_groups_get_ancestor_group_ids( $g4 );
+
+		$this->assertEqualSets( array( $g1, $g2 ), $children );
+	}
+
+	/**
+	 * @group hierarchical_groups
+	 */
+	public function test_bp_groups_get_ancestor_group_ids_user_scope_logged_out() {
+		$g1 = $this->factory->group->create();
+		$g2 = $this->factory->group->create( array(
+			'parent_id' => $g1,
+		) );
+		$g3 = $this->factory->group->create( array(
+			'parent_id' => $g1,
+			'status'    => 'hidden',
+		) );
+		$g4 = $this->factory->group->create( array(
+			'parent_id' => $g2,
+		) );
+		$g5 = $this->factory->group->create();
+
+		$children = bp_groups_get_ancestor_group_ids( $g4, 0 );
+
+		$this->assertEqualSets( array( $g1, $g2 ), $children );
+	}
+
+	/**
+	 * @group hierarchical_groups
+	 */
+	public function test_bp_groups_get_ancestor_group_ids_user_scope_logged_out_w_hidden() {
+		$g1 = $this->factory->group->create();
+		$g2 = $this->factory->group->create( array(
+			'parent_id' => $g1,
+		) );
+		$g3 = $this->factory->group->create( array(
+			'parent_id' => $g1,
+			'status'    => 'hidden',
+		) );
+		$g4 = $this->factory->group->create( array(
+			'parent_id' => $g3,
+		) );
+		$g5 = $this->factory->group->create();
+
+		$children = bp_groups_get_ancestor_group_ids( $g4, 0 );
+
+		$this->assertEqualSets( array(), $children );
+	}
+
+	/**
+	 * @group hierarchical_groups
+	 */
+	public function test_bp_groups_get_ancestor_group_ids_user_scope_not_group_member() {
+		$g1 = $this->factory->group->create( array(
+			'parent_id' => $g1,
+			'status'    => 'hidden',
+		) );
+		$g2 = $this->factory->group->create( array(
+			'parent_id' => $g1,
+		) );
+		$g3 = $this->factory->group->create( array(
+			'parent_id' => $g1,
+		) );
+		$g4 = $this->factory->group->create( array(
+			'parent_id' => $g3,
+		) );
+		$g5 = $this->factory->group->create();
+		$u1 = $this->factory->user->create();
+
+		$children = bp_groups_get_ancestor_group_ids( $g4, $u1 );
+
+		$this->assertEqualSets( array( $g3 ), $children );
+	}
+
+	/**
+	 * @group hierarchical_groups
+	 */
+	public function test_bp_groups_get_ancestor_group_ids_user_scope_group_member() {
+		$u1 = $this->factory->user->create();
+		$g1 = $this->factory->group->create();
+		$g2 = $this->factory->group->create( array(
+			'parent_id' => $g1,
+		) );
+		$g3 = $this->factory->group->create( array(
+			'parent_id'  => $g1,
+			'status'     => 'hidden',
+			'creator_id' => $u1,
+		) );
+		$g4 = $this->factory->group->create( array(
+			'parent_id' => $g3,
+		) );
+		$g5 = $this->factory->group->create();
+
+		$children = bp_groups_get_ancestor_group_ids( $g4, $u1 );
+
+		$this->assertEqualSets( array( $g1, $g3 ), $children );
+	}
+
+	/**
+	 * @group hierarchical_groups
+	 */
+	public function test_bp_groups_get_ancestor_group_ids_user_scope_site_admin() {
+		// @TODO: This doesn't seem to be making $u1 a site admin (can bp_moderate)
+		$u1 = $this->factory->user->create( array( 'role' => 'administrator' ) );
+		$this->grant_super_admin( $u1 );
+		$g1 = $this->factory->group->create();
+		$g2 = $this->factory->group->create( array(
+			'parent_id' => $g1,
+		) );
+		$g3 = $this->factory->group->create( array(
+			'parent_id'  => $g1,
+			'status'     => 'hidden',
+		) );
+		$g4 = $this->factory->group->create( array(
+			'parent_id' => $g3,
+		) );
+		$g5 = $this->factory->group->create();
+
+		$children = bp_groups_get_ancestor_group_ids( $g4, $u1 );
+
+		$this->assertEqualSets( array( $g1, $g3 ), $children );
+	}
+
 }

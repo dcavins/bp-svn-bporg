@@ -117,6 +117,9 @@
 				elseif ( bp_is_group_members()    ) : bp_groups_members_template_part();
 
 				// Group Invitations
+				elseif ( bp_is_group_subgroups()  ) : bp_get_template_part( 'groups/single/subgroups-loop' );
+
+				// Group Invitations
 				elseif ( bp_is_group_invites()    ) : bp_get_template_part( 'groups/single/send-invites' );
 
 				// Old group forums

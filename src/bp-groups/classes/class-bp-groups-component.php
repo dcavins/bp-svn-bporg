@@ -603,6 +603,21 @@ class BP_Groups_Component extends BP_Component {
 				);
 			}
 
+			// Include the hierarchy item if there are groups to show or the user can create new subgroups.
+			if ( bp_groups_has_children( $this->current_group->id, bp_loggedin_user_id() ) ) {
+				$sub_nav[] = array(
+					'name'            => _x( 'Subgroups', 'Subgroup directory screen nav', 'buddypress' ),
+					'slug'            => 'hierarchy',
+					'parent_url'      => $group_link,
+					'parent_slug'     => $this->current_group->slug,
+					'screen_function' => 'groups_screen_subgroup_directory',
+					'item_css_id'     => 'hierarchy',
+					'position'        => 61,
+					'user_has_access' => $this->current_group->user_has_access,
+					'no_access_url'   => $group_link,
+				);
+			}
+
 			if ( bp_is_active( 'friends' ) && bp_groups_user_can_send_invites() ) {
 				$sub_nav[] = array(
 					'name'            => _x( 'Send Invites', 'My Group screen nav', 'buddypress' ),

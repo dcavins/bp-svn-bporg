@@ -508,11 +508,20 @@ function bp_update_to_2_5() {
  * 2.7.0 update routine.
  *
  * - Add email unsubscribe salt.
+ * - Add `parent_id` column to groups table.
  *
  * @since 2.7.0
  */
 function bp_update_to_2_7() {
 	bp_add_option( 'bp-emails-unsubscribe-salt', base64_encode( wp_generate_password( 64, true, true ) ) );
+
+	/*
+	 * Also handled by `bp_core_install()`.
+	 * Add `parent_id` column to groups table.
+	 */
+	if ( bp_is_active( 'groups' ) ) {
+		bp_core_install_groups();
+	}
 }
 
 /**

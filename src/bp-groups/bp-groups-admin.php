@@ -278,7 +278,10 @@ function bp_groups_admin_load() {
 		$allowed_invite_status = apply_filters( 'groups_allowed_invite_status', array( 'members', 'mods', 'admins' ) );
 		$invite_status	       = in_array( $_POST['group-invite-status'], (array) $allowed_invite_status ) ? $_POST['group-invite-status'] : 'members';
 
-		if ( !groups_edit_group_settings( $group_id, $enable_forum, $status, $invite_status ) ) {
+		// Set a parent group ID.
+		$parent_id = ( isset( $_POST['parent-id'] ) ) ? (int) $_POST['parent-id'] : 0;
+
+		if ( !groups_edit_group_settings( $group_id, $enable_forum, $status, $invite_status, $parent_id ) ) {
 			$error = $group_id;
 		}
 
@@ -826,6 +829,47 @@ function bp_groups_admin_edit_metabox_settings( $item ) {
 		</fieldset>
 	</div>
 
+	<?php if ( bp_allow_hierarchical_groups() ) : ?>
+		<div class="bp-groups-settings-section" id="bp-groups-settings-section-group-hierarchy">
+			<label for="parent-id"><?php _e( 'Parent Group', 'buddypress' ); ?></label>
+			<?php
+			$current_parent_group_id = bp_groups_get_parent_group_id( $item->id );
+			$possible_parent_groups = bp_groups_get_possible_parent_groups( $item->id, bp_loggedin_user_id() );
+			if ( $possible_parent_groups ) :
+				?>
+				<select name="parent-id" id="parent-id">
+					<option value="0" <?php selected( 0, $current_parent_group_id ); ?>><?php echo _x( 'None selected', 'The option that sets a group to be a top-level group and have no parent.', 'buddypress' ); ?></option>
+				<?php foreach ( $possible_parent_groups as $possible_parent_group ) {
+					?>
+					<option value="<?php echo $possible_parent_group->id; ?>" <?php selected( $current_parent_group_id, $possible_parent_group->id ); ?>><?php echo $possible_parent_group->name; ?></option>
+					<?php
+				}
+				?>
+				</select>
+				<?php
+			else :
+				?>
+				<p><?php echo __( 'There are no groups available to be a parent to this group.', 'buddypress' ); ?></p>
+				<?php
+			endif;
+			?>
+
+			<fieldset>
+				<legend><?php _e( 'Which members of this group are allowed to create subgroups?', 'buddypress' ); ?></legend>
+
+				<?php
+				$subgroup_creators = groups_get_groupmeta( $item->id, 'allowed_subgroup_creators' );
+				if ( ! $subgroup_creators ) {
+					$subgroup_creators = 'noone';
+				}
+				?>
+				<input type="radio" name="allowed-subgroup-creators" id="allowed-subgroup-creators-members" value="member" <?php checked( $subgroup_creators, 'member' ); ?> /> <label for="allowed-subgroup-creators-members"><?php _e( 'All group members', 'buddypress' ); ?></label>
+				<input type="radio" name="allowed-subgroup-creators" id="allowed-subgroup-creators-mods" value="mod" <?php checked( $subgroup_creators, 'mod' ); ?> /> <label for="allowed-subgroup-creators-mods"> <?php _e( 'Group admins and mods only', 'buddypress' ); ?></label>
+				><input type="radio" name="allowed-subgroup-creators" id="allowed-subgroup-creators-admins" value="admin" <?php checked( $subgroup_creators, 'admin' ); ?> /> <label for="allowed-subgroup-creators-admins"<?php _e( 'Group admins only', 'buddypress' ); ?></label>
+				<input type="radio" name="allowed-subgroup-creators" id="allowed-subgroup-creators-noone" value="noone" <?php checked( $subgroup_creators, 'noone' ); ?> /> <label for="allowed-subgroup-creators-noone"><?php _e( 'No one', 'buddypress' ); ?></label>
+			</fieldset>
+		</div>
+	<?php endif; ?>
 <?php
 }
 

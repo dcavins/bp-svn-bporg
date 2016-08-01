@@ -70,6 +70,7 @@ add_action( 'groups_create_group_step_complete', 'groups_clear_group_object_cach
  */
 function bp_groups_delete_group_cache( $group_id = 0 ) {
 	wp_cache_delete( $group_id, 'bp_groups' );
+	wp_cache_delete( 'last_changed', 'bp_groups' );
 }
 add_action( 'groups_delete_group',     'bp_groups_delete_group_cache' );
 add_action( 'groups_update_group',     'bp_groups_delete_group_cache' );

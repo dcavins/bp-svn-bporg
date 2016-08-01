@@ -68,6 +68,16 @@ class BP_Groups_Group {
 	public $status;
 
 	/**
+	 * Parent ID.
+	 *
+	 * ID of parent group, if applicable.
+	 *
+	 * @since 2.7.0
+	 * @var int
+	 */
+	public $parent_id;
+
+	/**
 	 * Should (legacy) bbPress forums be enabled for this group?
 	 *
 	 * @since 1.6.0
@@ -214,6 +224,7 @@ class BP_Groups_Group {
 		$this->slug         = $group->slug;
 		$this->description  = stripslashes( $group->description );
 		$this->status       = $group->status;
+		$this->parent_id    = $group->parent_id;
 		$this->enable_forum = $group->enable_forum;
 		$this->date_created = $group->date_created;
 
@@ -282,6 +293,7 @@ class BP_Groups_Group {
 		$this->slug         = apply_filters( 'groups_group_slug_before_save',         $this->slug,         $this->id );
 		$this->description  = apply_filters( 'groups_group_description_before_save',  $this->description,  $this->id );
 		$this->status       = apply_filters( 'groups_group_status_before_save',       $this->status,       $this->id );
+		$this->parent_id    = apply_filters( 'groups_group_parent_id_before_save',    $this->parent_id,    $this->id );
 		$this->enable_forum = apply_filters( 'groups_group_enable_forum_before_save', $this->enable_forum, $this->id );
 		$this->date_created = apply_filters( 'groups_group_date_created_before_save', $this->date_created, $this->id );
 
@@ -324,6 +336,7 @@ class BP_Groups_Group {
 					slug = %s,
 					description = %s,
 					status = %s,
+					parent_id = %d,
 					enable_forum = %d,
 					date_created = %s
 				WHERE
@@ -334,6 +347,7 @@ class BP_Groups_Group {
 					$this->slug,
 					$this->description,
 					$this->status,
+					$this->parent_id,
 					$this->enable_forum,
 					$this->date_created,
 					$this->id
@@ -346,16 +360,18 @@ class BP_Groups_Group {
 					slug,
 					description,
 					status,
+					parent_id,
 					enable_forum,
 					date_created
 				) VALUES (
-					%d, %s, %s, %s, %s, %d, %s
+					%d, %s, %s, %s, %s, %d, %d, %s
 				)",
 					$this->creator_id,
 					$this->name,
 					$this->slug,
 					$this->description,
 					$this->status,
+					$this->parent_id,
 					$this->enable_forum,
 					$this->date_created
 			);
@@ -710,6 +726,8 @@ class BP_Groups_Group {
 	 *                                            See {@link WP_Meta_Query::queries} for description.
 	 *     @type array|string $value              Optional. Array or comma-separated list of group IDs. Results
 	 *                                            will be limited to groups within the list. Default: false.
+	 *     @type array|string $parent_id          Optional. Array or comma-separated list of group IDs. Results
+	 *                                            will be limited to children of the specified groups. Default: false.
 	 *     @type bool         $populate_extras    Whether to fetch additional information
 	 *                                            (such as member count) about groups. Default: true.
 	 *     @type array|string $exclude            Optional. Array or comma-separated list of group IDs.
@@ -761,6 +779,7 @@ class BP_Groups_Group {
 			'group_type__not_in' => '',
 			'meta_query'         => false,
 			'include'            => false,
+			'parent_id'          => false,
 			'populate_extras'    => true,
 			'update_meta_cache'  => true,
 			'exclude'            => false,
@@ -833,6 +852,11 @@ class BP_Groups_Group {
 		if ( ! empty( $r['include'] ) ) {
 			$include        = implode( ',', wp_parse_id_list( $r['include'] ) );
 			$sql['include'] = " AND g.id IN ({$include})";
+		}
+
+		if ( ! empty( $r['parent_id'] ) ) {
+			$parent_id        = implode( ',', wp_parse_id_list( $r['parent_id'] ) );
+			$sql['parent_id'] = " AND g.parent_id IN ({$parent_id})";
 		}
 
 		if ( ! empty( $r['exclude'] ) ) {
@@ -945,6 +969,11 @@ class BP_Groups_Group {
 		// Already escaped in the paginated results block.
 		if ( ! empty( $include ) ) {
 			$total_sql['where'][] = "g.id IN ({$include})";
+		}
+
+		// Already escaped in the paginated results block.
+		if ( ! empty( $parent_id ) ) {
+			$total_sql['where'][] = "g.parent_id IN ({$parent_id})";
 		}
 
 		// Already escaped in the paginated results block.

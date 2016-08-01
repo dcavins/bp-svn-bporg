@@ -87,6 +87,7 @@ function groups_get_group( $args = '' ) {
  *     @type string   $slug         The group slug.
  *     @type string   $status       The group's status. Accepts 'public', 'private' or
  *                                  'hidden'. Defaults to 'public'.
+ *     @type int      $parent_id    The ID of the parent group. Default: 0.
  *     @type int      $enable_forum Optional. Whether the group has a forum enabled.
  *                                  If the legacy forums are enabled for this group
  *                                  or if a bbPress forum is enabled for the group,
@@ -105,6 +106,7 @@ function groups_create_group( $args = '' ) {
 		'description'  => '',
 		'slug'         => '',
 		'status'       => 'public',
+		'parent_id'    => 0,
 		'enable_forum' => 0,
 		'date_created' => bp_core_current_time()
 	);
@@ -151,6 +153,7 @@ function groups_create_group( $args = '' ) {
 	$group->description  = $description;
 	$group->slug         = $slug;
 	$group->status       = $status;
+	$group->parent_id    = $parent_id;
 	$group->enable_forum = (int) $enable_forum;
 	$group->date_created = $date_created;
 
@@ -270,7 +273,7 @@ function groups_edit_base_group_details( $group_id, $group_name, $group_desc, $n
  *                                   to the group. 'members', 'mods', or 'admins'.
  * @return bool True on success, false on failure.
  */
-function groups_edit_group_settings( $group_id, $enable_forum, $status, $invite_status = false ) {
+function groups_edit_group_settings( $group_id, $enable_forum, $status, $invite_status = false, $parent_id = false ) {
 
 	$group = groups_get_group( array( 'group_id' => $group_id ) );
 	$group->enable_forum = $enable_forum;
@@ -284,6 +287,11 @@ function groups_edit_group_settings( $group_id, $enable_forum, $status, $invite_
 
 	// Now update the status.
 	$group->status = $status;
+
+	// Update the parent ID if necessary.
+	if ( false !== $parent_id ) {
+		$group->parent_id = $parent_id;
+	}
 
 	if ( !$group->save() )
 		return false;
@@ -703,6 +711,7 @@ function groups_get_groups( $args = '' ) {
 		'user_id'            => false,          // Pass a user_id to limit to only groups that this user is a member of.
 		'include'            => false,          // Only include these specific groups (group_ids).
 		'exclude'            => false,          // Do not include these specific groups (group_ids).
+		'parent_id'          => false,          // Get groups that are children of the specified group(s).
 		'search_terms'       => false,          // Limit to groups that match these search terms.
 		'group_type'         => '',
 		'group_type__in'     => '',
@@ -722,6 +731,7 @@ function groups_get_groups( $args = '' ) {
 		'user_id'            => $r['user_id'],
 		'include'            => $r['include'],
 		'exclude'            => $r['exclude'],
+		'parent_id'          => $r['parent_id'],
 		'search_terms'       => $r['search_terms'],
 		'group_type'         => $r['group_type'],
 		'group_type__in'     => $r['group_type__in'],
@@ -2393,3 +2403,360 @@ function bp_remove_group_type_on_group_delete( $group_id = 0 ) {
 	bp_groups_set_group_type( $group_id, '' );
 }
 add_action( 'groups_delete_group', 'bp_remove_group_type_on_group_delete' );
+
+// Hierarchical groups
+
+/**
+ * Get the child groups for a specific group.
+ *
+ * To return all child groups, leave the $user_id parameter empty. To return
+ * only those child groups visible to a specific user, specify a $user_id.
+ *
+ * @since 2.7.0
+ *
+ * @param  int   $group_id ID of the group.
+ * @param  int   $user_id  ID of a user to check group visibility for.
+ *
+ * @return array Array of group objects.
+ */
+function bp_groups_get_child_groups( $group_id = false, $user_id = false ) {
+	/*
+	 * Passing a group id of 0 would find all top-level groups, which could be
+	 * intentional. We only try to find the current group when the $group_id is false.
+	 */
+	if ( $group_id === false ) {
+		$group_id = bp_get_current_group_id();
+		if ( ! $group_id ) {
+			// If we can't resolve the group_id, don't proceed with a zero value.
+			return array();
+		}
+	}
+
+	// @TODO: Do we need to check whether the specified user can see the parent group in question?
+
+	// Check the cache first.
+	$last_changed = wp_cache_get( 'last_changed', 'bp_groups' );
+	if ( false === $last_changed ) {
+		$last_changed = microtime();
+		wp_cache_set( 'last_changed', $last_changed, 'bp_groups' );
+	}
+
+	$cache_key = 'bp_groups_child_groups_of_' . $group_id . '_' . $last_changed;
+	$children  = wp_cache_get( $cache_key, 'bp_groups' );
+
+	if ( false === $children ) {
+		// Fetch all child groups.
+		$child_args = array(
+			'parent_id' => $group_id,
+			'show_hidden' => true,
+		);
+		$children = groups_get_groups( $child_args );
+		$children = $children['groups'];
+
+		// Set the cache to avoid duplicate requests.
+		wp_cache_set( $cache_key, $children, 'bp_groups' );
+	}
+
+	// If a user ID has been specified, we filter hidden groups accordingly.
+	if ( false !== $user_id && ! bp_user_can( $user_id, 'bp_moderate' ) ) {
+		foreach ( $children as $k => $group ) {
+			// Check whether the user should be able to see this group.
+			// @TODO: Use group capabilities for this when possible.
+			if ( 'hidden' == $group->status && ! groups_is_user_member( $user_id, $group->id ) ) {
+				unset( $children[$k] );
+			}
+		}
+	}
+
+	return $children;
+}
+
+/**
+ * Get the child group IDs for a specific group.
+ *
+ * To return all child groups, leave the $user_id parameter empty. To return
+ * only those child groups visible to a specific user, specify a $user_id.
+ *
+ * @since 2.7.0
+ *
+ * @param  int   $group_id ID of the group.
+ * @param  int   $user_id  ID of a user to check group visibility for.
+ *
+ * @return array Array of group IDs.
+ */
+function bp_groups_get_child_group_ids( $group_id = false, $user_id = false ) {
+	/*
+	 * Passing a group id of 0 would find all top-level groups, which could be
+	 * intentional. We only try to find the current group when the $group_id is false.
+	 */
+	if ( $group_id === false ) {
+		$group_id = bp_get_current_group_id();
+		if ( ! $group_id ) {
+			// If we can't resolve the group_id, don't proceed with a zero value.
+			return array();
+		}
+	}
+
+	$child_groups    = bp_groups_get_child_groups( $group_id, $user_id );
+	$child_group_ids = wp_list_pluck( $child_groups, 'id' );
+
+	// Convert IDs to integers.
+	return array_map( 'intval', $child_group_ids );
+}
+
+/**
+ * Does a specific group have child groups?
+ *
+ * To check for the actual existence of child groups, leave the $user_id
+ * parameter empty. To check whether any exist that are visible to a user,
+ * supply a $user_id.
+ *
+ * @since 2.7.0
+ *
+ * @param  int   $group_id ID of the group.
+ * @param  int   $user_id  ID of a user to check group visibility for.
+ *
+ * @return bool True if true, false if not.
+ */
+function bp_groups_has_children( $group_id = false, $user_id = false ) {
+	/*
+	 * Passing a group id of 0 finds all top-level groups, which could be
+	 * intentional. Try to find the current group only when the $group_id is false.
+	 */
+	if ( $group_id === false ) {
+		$group_id = bp_get_current_group_id();
+		if ( ! $group_id ) {
+			// If we can't resolve the group_id, don't proceed with a zero value.
+			return false;
+		}
+	}
+
+	$children = bp_groups_get_child_groups( $group_id, $user_id );
+	return ! empty ( $children ) ? true : false;
+}
+
+/**
+ * Get all groups that are descendants of a specific group.
+ *
+ * To return all descendent groups, leave the $user_id parameter empty. To return
+ * only those child groups visible to a specific user, specify a $user_id.
+ *
+ * @since 2.7.0
+ *
+ * @param  int   $group_id ID of the group.
+ * @param  int   $user_id  ID of a user to check group visibility for.
+ *
+ * @return array Array of group objects.
+ */
+function bp_groups_get_descendent_groups( $group_id = false, $user_id = false ) {
+	/*
+	 * Passing a group id of 0 would find all top-level groups, which could be
+	 * intentional. We only try to find the current group when the $group_id is false.
+	 */
+	if ( $group_id === false ) {
+		$group_id = bp_get_current_group_id();
+		if ( ! $group_id ) {
+			// If we can't resolve the group_id, don't proceed with a zero value.
+			return array();
+		}
+	}
+
+	// Check the cache first.
+	$last_changed = wp_cache_get( 'last_changed', 'bp_groups' );
+	if ( false === $last_changed ) {
+		$last_changed = microtime();
+		wp_cache_set( 'last_changed', $last_changed, 'bp_groups' );
+	}
+
+	$cache_key   = 'bp_groups_descendants_of_' . $group_id . '_' . $last_changed;
+	$descendants = wp_cache_get( $cache_key, 'bp_groups' );
+
+	if ( false === $descendants ) {
+		// Start from the group specified.
+		$parents = array( $group_id );
+		$descendants = array();
+
+		// We work down the tree until no new children are found.
+		while ( $parents ) {
+			// Fetch all child groups.
+			$child_args = array(
+				'parent_id' => $parents,
+				'show_hidden' => true,
+			);
+			$children = groups_get_groups( $child_args );
+
+			// Add groups to the set of found groups.
+			$descendants = array_merge( $descendants, $children['groups'] );
+
+			// Set up the next set of parents.
+			$parents = wp_list_pluck( $children['groups'], 'id' );
+		}
+
+		// Set the cache to avoid duplicate requests.
+		wp_cache_set( $cache_key, $descendants, 'bp_groups' );
+	}
+
+	// If a user ID has been specified, we filter hidden groups accordingly.
+	if ( false !== $user_id && ! bp_user_can( $user_id, 'bp_moderate' ) ) {
+		foreach ( $descendants as $k => $group ) {
+			// Check whether the user should be able to see this group.
+			// @TODO: Use group capabilities for this when possible.
+			if ( 'hidden' == $group->status && ! groups_is_user_member( $user_id, $group->id ) ) {
+				unset( $descendants[$k] );
+			}
+		}
+	}
+
+	return $descendants;
+}
+
+/**
+ * Get the parent group ID for a specific group.
+ *
+ * To return the parent group regardless of visibility, leave the $user_id
+ * parameter empty. To return the parent only when visible to a specific user,
+ * specify a $user_id.
+ *
+ * @since 2.7.0
+ *
+ * @param  int   $group_id ID of the group.
+ * @param  int   $user_id  ID of a user to check group visibility for.
+ *
+ * @return int ID of parent group.
+ */
+function bp_groups_get_parent_group_id( $group_id = false, $user_id = false ) {
+	/*
+	 * Passing a group id of 0 would find all top-level groups, which could be
+	 * intentional. We only try to find the current group when the $group_id is false.
+	 */
+	if ( $group_id === false ) {
+		$group_id = bp_get_current_group_id();
+		if ( ! $group_id ) {
+			// If we can't resolve the group_id, don't proceed with a zero value.
+			return array();
+		}
+	}
+
+	$group     = groups_get_group( array( 'group_id' => $group_id ) );
+	$parent_id = $group->parent_id;
+
+	// If the user is specified, is the parent group visible to that user?
+	// @TODO: This could make use of group visibility when available.
+	if ( false !== $user_id && ! bp_user_can( $user_id, 'bp_moderate' ) ) {
+		$parent_group = groups_get_group( array( 'group_id' => $parent_id) );
+		if ( 'hidden' == $parent_group->status && ! groups_is_user_member( $user_id, $parent_group->id ) ) {
+			// If the group is not visible to the user, break the chain.
+			$parent_id = 0;
+		}
+	}
+
+	return (int) $parent_id;
+}
+
+/**
+ * Get an array of group ids that are ancestors of a specific group.
+ *
+ * To return all ancestor groups, leave the $user_id parameter empty. To return
+ * only those ancestor groups visible to a specific user, specify a $user_id.
+ * Note that if groups the user can't see are encountered, the chain of ancestry
+ * is stopped. Also note that the order here is useful: the first element is the
+ * parent group id, the second is the grandparent group id and so on.
+ *
+ * @since 2.7.0
+ *
+ * @param  int   $group_id ID of the group.
+ * @param  int   $user_id  ID of a user to check group visibility for.
+ *
+ * @return array Array of group objects.
+ */
+function bp_groups_get_ancestor_group_ids( $group_id = false, $user_id = false ) {
+	/*
+	 * Passing a group id of 0 would find all top-level groups, which could be
+	 * intentional. We only try to find the current group when the $group_id is false.
+	 */
+	if ( $group_id === false ) {
+		$group_id = bp_get_current_group_id();
+		if ( ! $group_id ) {
+			// If we can't resolve the group_id, don't proceed with a zero value.
+			return array();
+		}
+	}
+
+	$ancestors = array();
+
+	// We work up the tree until no new parent is found.
+	while ( $group_id ) {
+		$parent_group_id = bp_groups_get_parent_group_id( $group_id, $user_id );
+		if ( $parent_group_id ) {
+			$ancestors[] = $parent_group_id;
+		}
+		// Set a new group id to work from.
+		$group_id = $parent_group_id;
+	}
+
+	return $ancestors;
+}
+
+/**
+ * Get an array of possible parent group ids for a specific group and user.
+ *
+ * To be a candidate for group parenthood, the group cannot be a descendent of
+ * this group, and the user must be allowed to create child groups in that group.
+ *
+ * @since 2.7.0
+ *
+ * @param  int   $group_id ID of the group.
+ * @param  int   $user_id  ID of a user to check group visibility for.
+ *
+ * @return array Array of group objects.
+ */
+function bp_groups_get_possible_parent_groups( $group_id = false, $user_id = false ) {
+	/*
+	 * Passing a group id of 0 would find all top-level groups, which could be
+	 * intentional. We only try to find the current group when the $group_id is false.
+	 */
+	if ( false === $group_id ) {
+		$group_id = bp_get_current_group_id();
+		if ( ! $group_id ) {
+			// If we can't resolve the group_id, don't proceed with a zero value.
+			return array();
+		}
+	}
+
+	if ( false === $user_id ) {
+		$user_id = bp_loggedin_user_id();
+		if ( ! $user_id ) {
+			// If we can't resolve the user_id, don't proceed with a zero value.
+			return array();
+		}
+	}
+
+	// First, get a list of descendants (don't pass a user id--we want them all).
+	$descendants = bp_groups_get_descendent_groups( $group_id );
+	$exclude_ids = wp_list_pluck( $descendants, 'id' );
+	// Also exclude the current group.
+	$exclude_ids[] = $group_id;
+
+	$args = array(
+		'orderby'         => 'name',
+		'order'           => 'ASC',
+		'populate_extras' => false,
+		'exclude'         => $exclude_ids, // Exclude descendants and this group.
+		'show_hidden'     => true,
+		'per_page'        => false, // Do not limit the number returned.
+		'page'            => false, // Do not limit the number returned.
+	);
+	// If the user is not a site admin, limit the set to groups she belongs to.
+	if ( ! bp_user_can( $user_id, 'bp_moderate' ) ) {
+		$args['user_id'] = $user_id;
+	}
+	$possible_parents = groups_get_groups( $args );
+	foreach ( $possible_parents['groups'] as $k => $group ) {
+		// Check whether the user can create child groups of this group.
+		if ( ! bp_user_can( $user_id, 'create_subgroups', array( 'group_id' => $group->id ) ) ) {
+			unset( $possible_parents['groups'][$k] );
+		}
+	}
+
+	return $possible_parents['groups'];
+}

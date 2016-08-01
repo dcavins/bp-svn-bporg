@@ -2786,6 +2786,19 @@ function bp_is_group_members() {
 }
 
 /**
+ * Is the current page a group's subgroup directory?
+ *
+ * Eg http://example.com/groups/mygroup/hierarchy/.
+ *
+ * @since 2.7.0
+ *
+ * @return bool True if the current page is a group's directory of subgroups.
+ */
+function bp_is_group_subgroups() {
+	return (bool) ( bp_is_groups_component() && bp_is_current_action( 'hierarchy' ) );
+}
+
+/**
  * Is the current page a group's Invites page?
  *
  * Eg http://example.com/groups/mygroup/send-invites/.

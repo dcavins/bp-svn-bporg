@@ -192,6 +192,22 @@ function bp_admin_setting_callback_group_creation() {
 }
 
 /**
+ * Allow hierarchical groups.
+ *
+ * @since 2.7.0
+ *
+ */
+function bp_admin_setting_callback_allow_hierarchical_groups() {
+?>
+
+	<input id="bp_allow_hierarchical_groups" name="bp_allow_hierarchical_groups" type="checkbox" value="1" <?php checked( bp_allow_hierarchical_groups() ); ?> />
+	<label for="bp_allow_hierarchical_groups"><?php _e( 'Allow hierarchical groups', 'buddypress' ); ?></label>
+	<p class="description"><?php _e( 'Allow groups to be associated with a parent group.', 'buddypress' ); ?></p>
+
+<?php
+}
+
+/**
  * 'Enable group avatars' field markup.
  *
  * @since 2.3.0

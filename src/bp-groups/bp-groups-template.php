@@ -137,6 +137,8 @@ function bp_groups_directory_permalink() {
  *                                            about groups. Default: true.
  *     @type array|string $exclude            Array or comma-separated list of group IDs. Results will exclude
  *                                            the listed groups. Default: false.
+ *     @type array|string $parent_id          Array or comma-separated list of group IDs. Results will include only
+ *                                            child groups of the listed groups. Default: false.
  *     @type bool         $update_meta_cache  Whether to fetch groupmeta for queried groups. Default: true.
  * }
  * @return bool True if there are groups to display that match the params
@@ -150,6 +152,7 @@ function bp_has_groups( $args = '' ) {
 	$slug         = false;
 	$type         = '';
 	$search_terms = false;
+	$parent_id    = false;
 
 	// When looking your own groups, check for two action variables.
 	if ( bp_is_current_action( 'my-groups' ) ) {
@@ -198,6 +201,7 @@ function bp_has_groups( $args = '' ) {
 		'meta_query'         => false,
 		'include'            => false,
 		'exclude'            => false,
+		'parent_id'          => $parent_id,
 		'populate_extras'    => true,
 		'update_meta_cache'  => true,
 	), 'has_groups' );
@@ -221,6 +225,7 @@ function bp_has_groups( $args = '' ) {
 		'meta_query'         => $r['meta_query'],
 		'include'            => $r['include'],
 		'exclude'            => $r['exclude'],
+		'parent_id'          => $r['parent_id'],
 		'populate_extras'    => (bool) $r['populate_extras'],
 		'update_meta_cache'  => (bool) $r['update_meta_cache'],
 	) );
@@ -767,6 +772,61 @@ function bp_group_permalink( $group = false ) {
 		 * @param object $group Group object.
 		 */
 		return apply_filters( 'bp_get_group_permalink', trailingslashit( bp_get_groups_directory_permalink() . $group->slug . '/' ), $group );
+	}
+
+/**
+ * Output the permalink breadcrumbs for the current group in the loop.
+ *
+ * @since 2.7.0
+ *
+ * @param object|bool $group Optional. Group object.
+ *                           Default: current group in loop.
+ * @param string      $separator String to place between group links.
+ */
+function bp_group_permalink_breadcrumbs( $group = false, $separator = ' / ' ) {
+	echo bp_get_group_permalink_breadcrumbs( $group, $separator );
+}
+	/**
+	 * Return the permalink breadcrumbs for the current group in the loop.
+	 *
+	 * @since 2.7.0
+	 *
+	 * @param object|bool $group Optional. Group object.
+	 *                           Default: current group in loop.
+     * @param string      $separator String to place between group links.
+     *
+	 * @return string
+	 */
+	function bp_get_group_permalink_breadcrumbs( $group = false, $separator = ' / ' ) {
+		global $groups_template;
+
+		if ( empty( $group ) ) {
+			$group = $groups_template->group;
+		}
+
+		// Create the base group's entry.
+		$item = '<a href="' . bp_get_group_permalink() . '">' . bp_get_group_name() . '</a>';
+		$breadcrumbs = array( $item );
+		$parent_id   = bp_groups_get_parent_group_id( $group->id, bp_loggedin_user_id() );
+
+		// Add breadcrumbs for the ancestors.
+		while ( $parent_id ) {
+			$parent_group = groups_get_group( array( 'group_id' => $parent_id ) );
+			$breadcrumbs[] = '<a href="' . bp_get_group_permalink( $parent_group ) . '">' . bp_get_group_name( $parent_group ) . '</a>';
+			$parent_id   = bp_groups_get_parent_group_id( $parent_group->id, bp_loggedin_user_id() );
+		}
+
+		$breadcrumbs = implode( $separator, array_reverse( $breadcrumbs ) );
+
+		/**
+		 * Filters the permalink for the current group in the loop.
+		 *
+		 * @since 2.7.0
+		 *
+		 * @param string $breadcrumb String of breadcrumb links.
+		 * @param object $group Group object.
+		 */
+		return apply_filters( 'bp_get_group_permalink_breadcrumbs', $breadcrumbs, $group );
 	}
 
 /**

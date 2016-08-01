@@ -63,6 +63,10 @@ do_action( 'bp_before_groups_loop' ); ?>
 
 				<div class="item-desc"><?php bp_group_description_excerpt(); ?></div>
 
+				<?php if ( bp_allow_hierarchical_groups() ) :?>
+					<div class="group-hierarchy-breadcrumbs"><?php bp_group_permalink_breadcrumbs(); ?></div>
+				<?php endif; ?>
+
 				<?php
 
 				/**

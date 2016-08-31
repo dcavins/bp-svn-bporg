@@ -85,6 +85,16 @@ class BP_Groups_Component extends BP_Component {
 	public $types = array();
 
 	/**
+	 * Group statuses.
+	 *
+	 * @see bp_groups_register_group_status()
+	 *
+	 * @since 2.7.0
+	 * @var array
+	 */
+	public $statuses = array();
+
+	/**
 	 * Start the groups component creation process.
 	 *
 	 * @since 1.5.0
@@ -122,7 +132,8 @@ class BP_Groups_Component extends BP_Component {
 			'template',
 			'adminbar',
 			'functions',
-			'notifications'
+			'notifications',
+			'capabilities'
 		);
 
 		if ( ! buddypress()->do_autoload ) {
@@ -242,22 +253,46 @@ class BP_Groups_Component extends BP_Component {
 				$this->current_group->is_user_member = false;
 			}
 
-			// Should this group be visible to the logged in user?
-			if ( 'public' == $this->current_group->status || $this->current_group->is_user_member ) {
+			// Set group visibility and access.
+			if ( bp_current_user_can( 'bp_moderate' ) ) {
 				$this->current_group->is_visible = true;
-			} else {
-				$this->current_group->is_visible = false;
-			}
-
-			// If this is a private or hidden group, does the user have access?
-			if ( 'private' == $this->current_group->status || 'hidden' == $this->current_group->status ) {
-				if ( $this->current_group->is_user_member && is_user_logged_in() || bp_current_user_can( 'bp_moderate' ) ) {
-					$this->current_group->user_has_access = true;
-				} else {
-					$this->current_group->user_has_access = false;
-				}
-			} else {
 				$this->current_group->user_has_access = true;
+			} else {
+				// Should this group be visible to the current user?
+				$this->current_group->is_visible = false;
+
+				// Parse multiple visibility conditions into an array.
+				$access_conditions = $this->current_group->capabilities['show_group'];
+				if ( ! is_array( $access_conditions ) ) {
+					$access_conditions = explode( ',', $access_conditions );
+				}
+
+				// If the current user meets at least one condition,
+				// allow visibility.
+				foreach ( $access_conditions as $access_condition ) {
+					if ( bp_groups_user_meets_access_condition( $access_condition, $this->current_group->id ) ) {
+						$this->current_group->is_visible = true;
+						break;
+					}
+				}
+
+				// Should the user have access to this group?
+				$this->current_group->user_has_access = false;
+
+				// Parse multiple visibility conditions into an array.
+				$access_conditions = $this->current_group->capabilities['access_group'];
+				if ( ! is_array( $access_conditions ) ) {
+					$access_conditions = explode( ',', $access_conditions );
+				}
+
+				// If the current user meets at least one condition,
+				// allow access.
+				foreach ( $access_conditions as $access_condition ) {
+					if ( bp_groups_user_meets_access_condition( $access_condition, $this->current_group->id ) ) {
+						$this->current_group->user_has_access = true;
+						break;
+					}
+				}
 			}
 
 			// Check once if the current group has a custom front template.
@@ -350,11 +385,7 @@ class BP_Groups_Component extends BP_Component {
 		 *
 		 * @param array $value Array of valid group statuses.
 		 */
-		$this->valid_status = apply_filters( 'groups_valid_status', array(
-			'public',
-			'private',
-			'hidden'
-		) );
+		$this->valid_status = apply_filters( 'groups_valid_status', bp_groups_get_group_statuses() );
 
 		// Auto join group when non group member performs group activity.
 		$this->auto_join = defined( 'BP_DISABLE_AUTO_GROUP_JOIN' ) && BP_DISABLE_AUTO_GROUP_JOIN ? false : true;
@@ -541,7 +572,7 @@ class BP_Groups_Component extends BP_Component {
 			if ( is_user_logged_in() &&
 				 ! $this->current_group->is_user_member &&
 				 ! groups_check_for_membership_request( bp_loggedin_user_id(), $this->current_group->id ) &&
-				 $this->current_group->status == 'private' &&
+				 'accepts_membership_requests' == bp_groups_group_has_cap( $this->current_group, 'join_method' ) &&
 				 ! groups_check_user_has_invite( bp_loggedin_user_id(), $this->current_group->id )
 				) {
 
@@ -676,7 +707,7 @@ class BP_Groups_Component extends BP_Component {
 					'position' => 30,
 				), $default_params );
 
-				if ( 'private' == $this->current_group->status ) {
+				if ( 'accepts_membership_requests' == bp_groups_group_has_cap( $this->current_group, 'join_method' ) ) {
 					$sub_nav[] = array_merge( array(
 						'name'     => __( 'Requests', 'buddypress' ),
 						'slug'     => 'membership-requests',

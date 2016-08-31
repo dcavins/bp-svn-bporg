@@ -508,14 +508,14 @@ class BP_Groups_Member {
 
 		$bp = buddypress();
 
-		// If the user is logged in and viewing their own groups, we can show hidden and private groups.
-		if ( $user_id != bp_loggedin_user_id() ) {
-			$group_sql = $wpdb->prepare( "SELECT DISTINCT m.group_id FROM {$bp->groups->table_name_members} m, {$bp->groups->table_name} g WHERE g.status != 'hidden' AND m.user_id = %d AND m.is_confirmed = 1 AND m.is_banned = 0{$pag_sql}", $user_id );
-			$total_groups = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT m.group_id) FROM {$bp->groups->table_name_members} m, {$bp->groups->table_name} g WHERE g.status != 'hidden' AND m.user_id = %d AND m.is_confirmed = 1 AND m.is_banned = 0", $user_id ) );
-		} else {
-			$group_sql = $wpdb->prepare( "SELECT DISTINCT group_id FROM {$bp->groups->table_name_members} WHERE user_id = %d AND is_confirmed = 1 AND is_banned = 0{$pag_sql}", $user_id );
-			$total_groups = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT group_id) FROM {$bp->groups->table_name_members} WHERE user_id = %d AND is_confirmed = 1 AND is_banned = 0", $user_id ) );
+		$hidden_sql = '';
+		if ( $hidden_group_ids = self::get_hidden_group_ids() ) {
+			$hidden_group_ids = implode( ',', $hidden_group_ids );
+			$hidden_sql = " AND group_id NOT IN ({$hidden_group_ids})";
 		}
+
+		$group_sql = $wpdb->prepare( "SELECT DISTINCT group_id FROM {$bp->groups->table_name_members} WHERE user_id = %d AND is_confirmed = 1 AND is_banned = 0{$hidden_sql}{$pag_sql}", $user_id );
+		$total_groups = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT group_id) FROM {$bp->groups->table_name_members} m WHERE user_id = %d AND is_confirmed = 1 AND is_banned = 0{$hidden_sql}", $user_id ) );
 
 		$groups = $wpdb->get_col( $group_sql );
 
@@ -554,8 +554,10 @@ class BP_Groups_Member {
 			$filter_sql = $wpdb->prepare( " AND ( g.name LIKE %s OR g.description LIKE %s )", $search_terms_like, $search_terms_like );
 		}
 
-		if ( $user_id != bp_loggedin_user_id() )
-			$hidden_sql = " AND g.status != 'hidden'";
+		if ( $hidden_group_ids = self::get_hidden_group_ids() ) {
+			$hidden_group_ids = implode( ',', $hidden_group_ids );
+			$hidden_sql = " AND g.id NOT IN ({$hidden_group_ids})";
+		}
 
 		$bp = buddypress();
 
@@ -597,8 +599,10 @@ class BP_Groups_Member {
 			$filter_sql = $wpdb->prepare( " AND ( g.name LIKE %s OR g.description LIKE %s )", $search_terms_like, $search_terms_like );
 		}
 
-		if ( $user_id != bp_loggedin_user_id() )
-			$hidden_sql = " AND g.status != 'hidden'";
+		if ( $hidden_group_ids = self::get_hidden_group_ids() ) {
+			$hidden_group_ids = implode( ',', $hidden_group_ids );
+			$hidden_sql = " AND g.id NOT IN ({$hidden_group_ids})";
+		}
 
 		$bp = buddypress();
 
@@ -640,8 +644,10 @@ class BP_Groups_Member {
 			$filter_sql = $wpdb->prepare( " AND ( g.name LIKE %s OR g.description LIKE %s )", $search_terms_like, $search_terms_like );
 		}
 
-		if ( $user_id != bp_loggedin_user_id() )
-			$hidden_sql = " AND g.status != 'hidden'";
+		if ( $hidden_group_ids = self::get_hidden_group_ids() ) {
+			$hidden_group_ids = implode( ',', $hidden_group_ids );
+			$hidden_sql = " AND g.id NOT IN ({$hidden_group_ids})";
+		}
 
 		$bp = buddypress();
 
@@ -685,8 +691,9 @@ class BP_Groups_Member {
 			$filter_sql        = $wpdb->prepare( " AND ( g.name LIKE %s OR g.description LIKE %s )", $search_terms_like, $search_terms_like );
 		}
 
-		if ( $user_id !== bp_loggedin_user_id() && ! bp_current_user_can( 'bp_moderate' ) ) {
-			$hidden_sql = " AND g.status != 'hidden'";
+		if ( $hidden_group_ids = self::get_hidden_group_ids() ) {
+			$hidden_group_ids = implode( ',', $hidden_group_ids );
+			$hidden_sql = " AND g.id NOT IN ({$hidden_group_ids})";
 		}
 
 		$paged_groups = $wpdb->get_results( "SELECT g.*, gm1.meta_value as total_member_count, gm2.meta_value as last_activity FROM {$bp->groups->table_name_groupmeta} gm1, {$bp->groups->table_name_groupmeta} gm2, {$bp->groups->table_name_members} m, {$bp->groups->table_name} g WHERE g.id = m.group_id AND g.id = gm1.group_id AND g.id = gm2.group_id AND gm2.meta_key = 'last_activity' AND gm1.meta_key = 'total_member_count'{$hidden_sql}{$filter_sql} AND {$user_id_sql} AND m.is_banned = 1  ORDER BY m.date_modified ASC {$pag_sql}" );
@@ -711,11 +718,13 @@ class BP_Groups_Member {
 
 		$bp = buddypress();
 
-		if ( $user_id != bp_loggedin_user_id() && !bp_current_user_can( 'bp_moderate' ) ) {
-			return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT m.group_id) FROM {$bp->groups->table_name_members} m, {$bp->groups->table_name} g WHERE m.group_id = g.id AND g.status != 'hidden' AND m.user_id = %d AND m.is_confirmed = 1 AND m.is_banned = 0", $user_id ) );
-		} else {
-			return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT m.group_id) FROM {$bp->groups->table_name_members} m, {$bp->groups->table_name} g WHERE m.group_id = g.id AND m.user_id = %d AND m.is_confirmed = 1 AND m.is_banned = 0", $user_id ) );
+		$hidden_sql = '';
+		if ( $hidden_group_ids = self::get_hidden_group_ids() ) {
+			$hidden_group_ids = implode( ',', $hidden_group_ids );
+			$hidden_sql = " AND m.group_id NOT IN ({$hidden_group_ids})";
 		}
+
+		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT m.group_id) FROM {$bp->groups->table_name_members} m, {$bp->groups->table_name} g WHERE m.group_id = g.id{$hidden_sql} AND m.user_id = %d AND m.is_confirmed = 1 AND m.is_banned = 0", $user_id ) );
 	}
 
 	/**
@@ -740,11 +749,18 @@ class BP_Groups_Member {
 
 		$pag_sql = ( !empty( $limit ) && !empty( $page ) ) ? $wpdb->prepare( " LIMIT %d, %d", intval( ( $page - 1 ) * $limit), intval( $limit ) ) : '';
 
-		if ( !empty( $exclude ) ) {
-			$exclude     = implode( ',', wp_parse_id_list( $exclude ) );
-			$exclude_sql = " AND g.id NOT IN ({$exclude})";
-		} else {
-			$exclude_sql = '';
+		$exclude_ids = array();
+		if ( ! empty( $exclude ) ) {
+			$exclude_ids = wp_parse_id_list( $exclude );
+		}
+
+		$hidden_group_ids = self::get_hidden_group_ids();
+
+		$exclude_sql = '';
+		if ( $exclude_ids || $hidden_group_ids ) {
+			$hidden_group_ids = array_merge( $exclude_ids, $hidden_group_ids );
+			$hidden_group_ids = implode( ',', $hidden_group_ids );
+			$exclude_sql = " AND g.id NOT IN ({$hidden_group_ids})";
 		}
 
 		$bp = buddypress();
@@ -770,7 +786,14 @@ class BP_Groups_Member {
 		$count = wp_cache_get( $user_id, 'bp_group_invite_count' );
 
 		if ( false === $count ) {
-			$count = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT m.group_id) FROM {$bp->groups->table_name_members} m, {$bp->groups->table_name} g WHERE m.group_id = g.id AND m.is_confirmed = 0 AND m.inviter_id != 0 AND m.invite_sent = 1 AND m.user_id = %d", $user_id ) );
+
+			$exclude_sql = '';
+			if ( $hidden_group_ids = self::get_hidden_group_ids() ) {
+				$hidden_group_ids = implode( ',', $hidden_group_ids );
+				$exclude_sql = " AND m.group_id NOT IN ({$hidden_group_ids})";
+			}
+
+			$count = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT m.group_id) FROM {$bp->groups->table_name_members} m, {$bp->groups->table_name} g WHERE m.group_id = g.id AND m.is_confirmed = 0 AND m.inviter_id != 0 AND m.invite_sent = 1 AND m.user_id = %d{$exclude_sql}", $user_id ) );
 			wp_cache_set( $user_id, $count, 'bp_group_invite_count' );
 		}
 
@@ -1005,12 +1028,12 @@ class BP_Groups_Member {
 
 		$bp = buddypress();
 
-		// If the user is logged in and viewing their random groups, we can show hidden and private groups.
-		if ( bp_is_my_profile() ) {
-			return array_map( 'intval', $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT group_id FROM {$bp->groups->table_name_members} WHERE user_id = %d AND is_confirmed = 1 AND is_banned = 0 ORDER BY rand() LIMIT %d", $user_id, $total_groups ) ) );
-		} else {
-			return array_map( 'intval', $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT m.group_id FROM {$bp->groups->table_name_members} m, {$bp->groups->table_name} g WHERE m.group_id = g.id AND g.status != 'hidden' AND m.user_id = %d AND m.is_confirmed = 1 AND m.is_banned = 0 ORDER BY rand() LIMIT %d", $user_id, $total_groups ) ) );
+        $hidden_sql = '';
+		if ( $hidden_group_ids = self::get_hidden_group_ids() ) {
+			$hidden_group_ids = implode( ',', $hidden_group_ids );
+			$hidden_sql = " AND group_id NOT IN ({$hidden_group_ids})";
 		}
+		return $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT group_id FROM {$bp->groups->table_name_members} WHERE user_id = %d AND is_confirmed = 1 AND is_banned = 0{$hidden_sql} ORDER BY rand() LIMIT %d", $user_id, $total_groups ) );
 	}
 
 	/**
@@ -1263,5 +1286,48 @@ class BP_Groups_Member {
 		}
 
 		return $wpdb->query( $wpdb->prepare( "DELETE FROM {$bp->groups->table_name_members} WHERE user_id = %d", $user_id ) );
+	}
+
+	/**
+	 * Generate a list of groups that should be invisible to the current user.
+	 *
+	 * @since 2.7.0
+	 *
+	 * @return array $hidden_group_ids
+	 */
+	protected static function get_hidden_group_ids() {
+		// Check cache for group data.
+		$last_changed = wp_cache_get( 'last_changed', 'bp_groups' );
+		if ( false === $last_changed ) {
+			$last_changed = microtime();
+			wp_cache_set( 'last_changed', $last_changed, 'bp_groups' );
+		}
+
+		$cache_key = 'hidden_groups_for_user_' . bp_loggedin_user_id() . '_' . $last_changed;
+		$hidden_group_ids = wp_cache_get( $cache_key, 'bp_groups' );
+
+		// Cache missed, so query the DB.
+		if ( false === $hidden_group_ids ) {
+			// Fetch groups, check if the current user should be able to see each one.
+			$all_group_args = array(
+				'show_hidden'       => true, // Show hidden groups to non-admins.
+				'per_page'          => false, // Return all.
+				'page'              => false, // Return all.
+				'update_meta_cache' => false // Don't prime the meta cache.
+				);
+			$groups = groups_get_groups( $all_group_args );
+
+			$hidden_group_ids = array();
+			if ( ! empty( $groups['groups'] ) ) {
+				foreach ( $groups['groups'] as $group ) {
+					if ( ! $group->is_visible ) {
+						$hidden_group_ids[] = (int) $group->id;
+					}
+				}
+			}
+
+			wp_cache_set( $cache_key, $hidden_group_ids, 'bp_groups' );
+		}
+		return $hidden_group_ids;
 	}
 }

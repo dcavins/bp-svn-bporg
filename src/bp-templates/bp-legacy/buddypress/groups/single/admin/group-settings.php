@@ -38,31 +38,26 @@ do_action( 'bp_before_group_settings_admin' ); ?>
 	<legend><?php _e( 'Privacy Options', 'buddypress' ); ?></legend>
 
 	<div class="radio">
+		<?php
+		$allowed_statuses = bp_groups_get_group_statuses( array(), 'objects' );
+		$new_group_status = bp_get_new_group_status();
+		if ( ! $new_group_status ) {
+			$new_group_status = current( $allowed_statuses )->name;
+		}
+		foreach( $allowed_statuses as $status ) :
+			?>
+			<label for="group-status-<?php echo $status->name ?>"><input type="radio" name="group-status" id="group-status-<?php echo $status->name ?>" value="<?php echo $status->name ?>"<?php checked( $status->name, $new_group_status ); ?> aria-describedby="<?php echo $status->name ?>-group-description" /> <?php echo $status->display_name; ?></label>
 
-		<label for="group-status-public"><input type="radio" name="group-status" id="group-status-public" value="public"<?php if ( 'public' == bp_get_new_group_status() || !bp_get_new_group_status() ) { ?> checked="checked"<?php } ?> aria-describedby="public-group-description" /> <?php _e( 'This is a public group', 'buddypress' ); ?></label>
-
-		<ul id="public-group-description">
-			<li><?php _e( 'Any site member can join this group.', 'buddypress' ); ?></li>
-			<li><?php _e( 'This group will be listed in the groups directory and in search results.', 'buddypress' ); ?></li>
-			<li><?php _e( 'Group content and activity will be visible to any site member.', 'buddypress' ); ?></li>
-		</ul>
-
-		<label for="group-status-private"><input type="radio" name="group-status" id="group-status-private" value="private"<?php if ( 'private' == bp_get_new_group_status() ) { ?> checked="checked"<?php } ?> aria-describedby="private-group-description" /> <?php _e( 'This is a private group', 'buddypress' ); ?></label>
-
-		<ul id="private-group-description">
-			<li><?php _e( 'Only users who request membership and are accepted can join the group.', 'buddypress' ); ?></li>
-			<li><?php _e( 'This group will be listed in the groups directory and in search results.', 'buddypress' ); ?></li>
-			<li><?php _e( 'Group content and activity will only be visible to members of the group.', 'buddypress' ); ?></li>
-		</ul>
-
-		<label for="group-status-hidden"><input type="radio" name="group-status" id="group-status-hidden" value="hidden"<?php if ( 'hidden' == bp_get_new_group_status() ) { ?> checked="checked"<?php } ?> aria-describedby="hidden-group-description" /> <?php _e('This is a hidden group', 'buddypress' ); ?></label>
-
-		<ul id="hidden-group-description">
-			<li><?php _e( 'Only users who are invited can join the group.', 'buddypress' ); ?></li>
-			<li><?php _e( 'This group will not be listed in the groups directory or search results.', 'buddypress' ); ?></li>
-			<li><?php _e( 'Group content and activity will only be visible to members of the group.', 'buddypress' ); ?></li>
-		</ul>
-
+			<ul id="<?php echo $status->name ?>-group-description">
+				<?php
+				foreach ( $status->capabilities as $cap => $value ) :
+					$cap_desc = bp_groups_group_capabilities_description( $cap, $value );
+					if ( $cap_desc ) : ?>
+						<li><?php echo $cap_desc; ?></li>
+					<?php endif;
+				endforeach; ?>
+			</ul>
+		<?php endforeach; ?>
 	</div>
 
 </fieldset>

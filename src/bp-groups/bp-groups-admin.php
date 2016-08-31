@@ -265,7 +265,7 @@ function bp_groups_admin_load() {
 		 *
 		 * @param array $value Array of allowed group statuses.
 		 */
-		$allowed_status = apply_filters( 'groups_allowed_status', array( 'public', 'private', 'hidden' ) );
+		$allowed_status = apply_filters( 'groups_allowed_status', bp_groups_get_group_statuses( array(), 'names' ) );
 		$status         = ( in_array( $_POST['group-status'], (array) $allowed_status ) ) ? $_POST['group-status'] : 'public';
 
 		/**
@@ -794,7 +794,9 @@ function bp_groups_admin_index() {
  */
 function bp_groups_admin_edit_metabox_settings( $item ) {
 
-	$invite_status = groups_get_groupmeta( $item->id, 'invite_status' ); ?>
+	$invite_status    = groups_get_groupmeta( $item->id, 'invite_status' );
+	$privacy_statuses = bp_groups_get_group_statuses( array(), 'objects' );
+	?>
 
 	<?php if ( bp_is_active( 'forums' ) ) : ?>
 		<div class="bp-groups-settings-section" id="bp-groups-settings-section-forum">
@@ -806,9 +808,9 @@ function bp_groups_admin_edit_metabox_settings( $item ) {
 		<fieldset>
 			<legend><?php _e( 'Privacy', 'buddypress' ); ?></legend>
 
-			<label for="bp-group-status-public"><input type="radio" name="group-status" id="bp-group-status-public" value="public" <?php checked( $item->status, 'public' ) ?> /><?php _e( 'Public', 'buddypress' ) ?></label>
-			<label for="bp-group-status-private"><input type="radio" name="group-status" id="bp-group-status-private" value="private" <?php checked( $item->status, 'private' ) ?> /><?php _e( 'Private', 'buddypress' ) ?></label>
-			<label for="bp-group-status-hidden"><input type="radio" name="group-status" id="bp-group-status-hidden" value="hidden" <?php checked( $item->status, 'hidden' ) ?> /><?php _e( 'Hidden', 'buddypress' ) ?></label>
+			<?php foreach ( $privacy_statuses as $status) : ?>
+				<label for="bp-group-status-<?php echo $status->name; ?>"><input type="radio" name="group-status" id="bp-group-status-<?php echo $status->name; ?>" value="<?php echo $status->name; ?>" <?php checked( $item->status, $status->name ) ?> /><?php echo $status->display_name; ?></label>
+			<?php endforeach; ?>
 		</fieldset>
 	</div>
 

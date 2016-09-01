@@ -133,7 +133,7 @@ class BP_Groups_Component extends BP_Component {
 			'adminbar',
 			'functions',
 			'notifications',
-			'capabilities'
+			'properties'
 		);
 
 		if ( ! buddypress()->do_autoload ) {

@@ -395,7 +395,7 @@ function groups_action_join_group() {
 	if ( !groups_is_user_member( bp_loggedin_user_id(), $bp->groups->current_group->id ) && !groups_is_user_banned( bp_loggedin_user_id(), $bp->groups->current_group->id ) ) {
 
 		// User wants to join a group that is not public.
-		if ( 'anyone_can_join' != bp_groups_group_has_cap( $bp->groups->current_group, 'join_method' ) ) {
+		if ( bp_current_user_can( 'groups_join_group', array( 'group' => $bp->groups->current_group ) ) ) {
 			if ( !groups_check_user_has_invite( bp_loggedin_user_id(), $bp->groups->current_group->id ) ) {
 				bp_core_add_message( __( 'There was an error joining the group.', 'buddypress' ), 'error' );
 				bp_core_redirect( bp_get_group_permalink( $bp->groups->current_group ) );
@@ -460,9 +460,10 @@ function groups_action_leave_group() {
 			bp_core_add_message( __( 'You successfully left the group.', 'buddypress' ) );
 		}
 
-		$redirect = bp_get_group_permalink( groups_get_current_group() );
+		$group = groups_get_current_group();
+		$redirect = bp_get_group_permalink( $group );
 
-		if ( ! bp_groups_group_has_cap( $bp->groups->current_group, 'show_group' ) ) {
+		if ( ! $group->is_visible ) {
 			$redirect = trailingslashit( bp_loggedin_user_domain() . bp_get_groups_slug() );
 		}
 

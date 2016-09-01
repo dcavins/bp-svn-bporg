@@ -68,12 +68,12 @@ class BP_Groups_Group {
 	public $status;
 
 	/**
-	 * Group capabilities.
+	 * Group status properties.
 	 *
 	 * @since 2.7.0
 	 * @var array
 	 */
-	public $capabilities;
+	public $properties;
 
 	/**
 	 * Should (legacy) bbPress forums be enabled for this group?
@@ -158,7 +158,7 @@ class BP_Groups_Group {
 	/**
 	 * Should the current user be able to see the group?
 	 *
-	 * @since 1.6.0
+	 * @since 2.7.0
 	 * @var bool
 	 */
 	public $is_visible;
@@ -233,17 +233,17 @@ class BP_Groups_Group {
 		$this->enable_forum = (int) $group->enable_forum;
 		$this->date_created = $group->date_created;
 
-		// Populate the group's capabilities.
-		$base_caps = bp_groups_get_group_status_capabilities( $group->status );
+		// Populate the group's status properties.
+		$base_props = bp_groups_get_group_status_properties( $group->status );
 		/**
-		 * Filters the capabilities for a specific group.
+		 * Filters the properties for a specific group.
 		 *
 		 * @since 2.7.0
 		 *
-		 * @param array  $base_caps  The capabilities for this group.
+		 * @param array  $base_props The properties for this group.
 		 * @param array  $group      Group object as it exists so far.
 		 */
-		$this->capabilities = apply_filters( 'bp_groups_group_object_set_caps', $base_caps, $this );
+		$this->properties = apply_filters( 'bp_groups_group_object_set_properties', $base_props, $this );
 
 		// Are we getting extra group data?
 		if ( ! empty( $this->args['populate_extras'] ) ) {
@@ -290,15 +290,15 @@ class BP_Groups_Group {
 				$this->is_visible = false;
 
 				// Parse multiple visibility conditions into an array.
-				$access_conditions = $this->capabilities['show_group'];
-				if ( ! is_array( $access_conditions ) ) {
-					$access_conditions = explode( ',', $access_conditions );
+				$visibility_conditions = $this->properties['show_group'];
+				if ( ! is_array( $visibility_conditions ) ) {
+					$visibility_conditions = explode( ',', $visibility_conditions );
 				}
 
 				// If the current user meets at least one condition,
 				// allow visibility.
-				foreach ( $access_conditions as $access_condition ) {
-					if ( bp_groups_user_meets_access_condition( $access_condition, $this->id, $user_id ) ) {
+				foreach ( $visibility_conditions as $visibility_condition ) {
+					if ( bp_groups_user_meets_access_condition( $visibility_condition, $this->id, $user_id ) ) {
 						$this->is_visible = true;
 						break;
 					}
@@ -308,7 +308,7 @@ class BP_Groups_Group {
 				$this->user_has_access = false;
 
 				// Parse multiple visibility conditions into an array.
-				$access_conditions = $this->capabilities['access_group'];
+				$access_conditions = $this->properties['access_group'];
 				if ( ! is_array( $access_conditions ) ) {
 					$access_conditions = explode( ',', $access_conditions );
 				}
@@ -1524,22 +1524,23 @@ $sql = $wpdb->prepare( "SELECT id as group_id FROM {$bp->groups->table_name} WHE
 			$group->is_pending = groups_is_user_pending( $user_id, $group->id ) ? '1' : '0';
 			$group->is_banned  = (bool) groups_is_user_banned( $user_id, $group->id );
 
-			// Populate the group's capabilities.
+			// Populate the group's properties.
 			if ( empty( $group->status ) ) {
 				// @TODO: This seems like a hack. Need to figure out when $paged_groups are not complete.
 				$temp_group    = groups_get_group( array( 'group_id' => $group->id ) );
 				$group->status = $temp_group->status;
 			}
-			$base_caps = bp_groups_get_group_status_capabilities( $group->status );
+
+			$base_props = bp_groups_get_group_status_properties( $group->status );
 			/**
-			 * Filters the capabilities for a specific group.
+			 * Filters the properties for a specific group.
 			 *
 			 * @since 2.7.0
 			 *
-			 * @param array  $base_caps  The capabilities for this group.
+			 * @param array  $base_props The properties for this group.
 			 * @param array  $group      Group object as it exists so far.
 			 */
-			$group->capabilities = apply_filters( 'bp_groups_group_object_set_caps', $base_caps, $group );
+			$group->properties = apply_filters( 'bp_groups_group_object_set_properties', $base_props, $group );
 
 			// Set group visibility and access.
 			if ( bp_current_user_can( 'bp_moderate' ) ) {
@@ -1550,15 +1551,15 @@ $sql = $wpdb->prepare( "SELECT id as group_id FROM {$bp->groups->table_name} WHE
 				$group->is_visible = false;
 
 				// Parse multiple visibility conditions into an array.
-				$access_conditions = $group->capabilities['show_group'];
-				if ( ! is_array( $access_conditions ) ) {
-					$access_conditions = explode( ',', $access_conditions );
+				$visibility_conditions = $group->properties['show_group'];
+				if ( ! is_array( $visibility_conditions ) ) {
+					$visibility_conditions = explode( ',', $visibility_conditions );
 				}
 
 				// If the current user meets at least one condition,
 				// allow visibility.
-				foreach ( $access_conditions as $access_condition ) {
-					if ( bp_groups_user_meets_access_condition( $access_condition, $group->id, $user_id ) ) {
+				foreach ( $visibility_conditions as $visibility_condition ) {
+					if ( bp_groups_user_meets_access_condition( $visibility_condition, $group->id, $user_id ) ) {
 						$group->is_visible = true;
 						break;
 					}
@@ -1568,7 +1569,7 @@ $sql = $wpdb->prepare( "SELECT id as group_id FROM {$bp->groups->table_name} WHE
 				$group->user_has_access = false;
 
 				// Parse multiple visibility conditions into an array.
-				$access_conditions = $group->capabilities['access_group'];
+				$access_conditions = $group->properties['access_group'];
 				if ( ! is_array( $access_conditions ) ) {
 					$access_conditions = explode( ',', $access_conditions );
 				}
@@ -1823,7 +1824,7 @@ $sql = $wpdb->prepare( "SELECT id as group_id FROM {$bp->groups->table_name} WHE
 	}
 
 	/**
-	 * Generate a list of groups that should be invisible to the current user.
+	 * Generate a list of groups that should not be visible to the current user.
 	 *
 	 * @since 2.7.0
 	 *

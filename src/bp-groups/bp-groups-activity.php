@@ -363,7 +363,7 @@ function groups_record_activity( $args = '' ) {
 			$group = groups_get_group( array( 'group_id' => $args['item_id'] ) );
 		}
 
-		if ( 'anyone' != bp_groups_group_has_cap( $group, 'access_group' ) ) {
+		if ( 'anyone' != bp_groups_group_has_property( $group, 'access_group' ) ) {
 			$hide_sitewide = true;
 		}
 	}

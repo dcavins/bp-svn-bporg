@@ -1,13 +1,13 @@
 <?php
 /**
- * BuddyPress Groups Capabilities.
+ * BuddyPress Groups Properties.
  *
  * @package BuddyPress
- * @subpackage GroupsCapabilities
+ * @subpackage GroupsProperties
  * @since 2.7.0
  */
 
-/** Group Statuses and Capabilities *******************************************/
+/** Group Statuses and Properties *******************************************/
 
 /**
  * Set up base group statuses.
@@ -16,68 +16,68 @@
  */
 function bp_groups_register_base_group_statuses() {
 
-	$public_group_caps = array(
+	$public_group_props = array(
 		'join_method'    => 'anyone_can_join',
 		'show_group'     => 'anyone',
 		'access_group'	 => 'anyone',
 		'post_in_forum'  => 'anyone',
 	);
 	/**
-	 * Filters the basic capabilities of the "public" group status.
+	 * Filters the basic properties of the "public" group status.
 	 *
 	 * @since 2.7.0
 	 *
-	 * @param array $public_group_caps Array of capabilities.
+	 * @param array $public_group_props Array of properties.
 	 */
-	$public_group_caps = apply_filters( 'bp_groups_public_group_status_caps', $public_group_caps );
+	$public_group_props = apply_filters( 'bp_groups_public_group_status_properties', $public_group_props );
 
 	bp_groups_register_group_status( 'public', array(
 		'display_name'    => _x( 'Public', 'Group status name', 'buddypress' ),
-		'capabilities'    => $public_group_caps,
+		'properties'    => $public_group_props,
 		'fallback_status' => 'none',
 		'priority'        => 10,
 	) );
 
-	$private_group_caps = array(
+	$private_group_props = array(
 		'join_method'   => 'accepts_membership_requests',
 		'show_group'    => 'anyone',
 		'access_group'  => 'member',
 		'post_in_forum' => 'member',
 	);
 	/**
-	 * Filters the basic capabilities of the "public" group status.
+	 * Filters the basic properties of the "public" group status.
 	 *
 	 * @since 2.7.0
 	 *
-	 * @param array $private_group_caps Array of capabilities.
+	 * @param array $private_group_props Array of properties.
 	 */
-	$private_group_caps = apply_filters( 'bp_groups_private_group_status_caps', $private_group_caps );
+	$private_group_props = apply_filters( 'bp_groups_private_group_status_properties', $private_group_props );
 
 	bp_groups_register_group_status( 'private', array(
 		'display_name'    => _x( 'Private', 'Group status name', 'buddypress' ),
-		'capabilities'    => $private_group_caps,
+		'properties'    => $private_group_props,
 		'fallback_status' => 'none',
 		'priority'        => 50,
 	) );
 
-	$hidden_group_caps = array(
+	$hidden_group_props = array(
 		'join_method'   => 'invitation_only',
 		'show_group'    => array( 'member', 'invited' ), // Invitees must be able to know about hidden groups.
 		'access_group'	=> 'member',
 		'post_in_forum' => 'member',
 	);
 	/**
-	 * Filters the basic capabilities of the "public" group status.
+	 * Filters the basic properties of the "public" group status.
 	 *
 	 * @since 2.7.0
 	 *
-	 * @param array $private_group_caps Array of capabilities.
+	 * @param array $private_group_props Array of properties.
 	 */
-	$hidden_group_caps = apply_filters( 'bp_groups_hidden_group_status_caps', $hidden_group_caps );
+	$hidden_group_props = apply_filters( 'bp_groups_hidden_group_status_properties', $hidden_group_props );
 
 	bp_groups_register_group_status( 'hidden', array(
 		'display_name'    => _x( 'Hidden', 'Group status name', 'buddypress' ),
-		'capabilities'    => $hidden_group_caps,
+		'properties'    => $hidden_group_props,
 		'fallback_status' => 'none',
 		'priority'        => 90,
 	) );
@@ -94,7 +94,7 @@ add_action( 'bp_groups_register_group_statuses', 'bp_groups_register_base_group_
  *     Array of arguments describing the group type.
  *
  *         @type string $name            Displayed name.
- *         @type array  $capabilities    Array of capabilities. See
+ *         @type array  $properties    Array of properties. See
  *                                       `bp_groups_register_base_group_statuses()`
  *                                       for commons capability sets.
  *         @type string $fallback_status If a capability isn't set, which typical
@@ -118,7 +118,7 @@ function bp_groups_register_group_status( $group_status, $args = array() ) {
 	$r = bp_parse_args( $args, array(
 		'name'            => $group_status,
 		'display_name'    => ucfirst( $group_status ),
-		'capabilities'    => array(),
+		'properties'    => array(),
 		'fallback_status' => 'public',
 	), 'register_group_status' );
 
@@ -140,10 +140,10 @@ function bp_groups_register_group_status( $group_status, $args = array() ) {
 
 	// Use the fallback status to fill out the status.
 	if ( 'none' != $r['fallback_status'] ) {
-		$fallback_caps = bp_groups_get_group_status_capabilities( $r['fallback_status'] );
+		$fallback_props = bp_groups_get_group_status_properties( $r['fallback_status'] );
 
-		if ( $fallback_caps ) {
-			$r['capabilities'] = bp_parse_args( $r['capabilities'], $fallback_caps, 'register_group_status_parse_caps' );
+		if ( $fallback_props ) {
+			$r['properties'] = bp_parse_args( $r['properties'], $fallback_props, 'register_group_status_parse_properties' );
 		}
 	}
 
@@ -213,7 +213,7 @@ function bp_groups_add_group_status_capability( $status, $cap, $value = true ) {
 		return false;
 	}
 	$cap_name = sanitize_key( $cap );
-	$bp->groups->statuses[$status]->capabilities[$cap_name] = $value;
+	$bp->groups->statuses[$status]->properties[$cap_name] = $value;
 	return true;
 }
 
@@ -235,10 +235,10 @@ function bp_groups_edit_group_status_capability( $status, $cap, $value = true ) 
 	if ( empty( $status )
 		|| empty( $cap )
 		|| ! isset( $bp->groups->statuses[$status] )
-		|| ! isset( $bp->groups->statuses[$status]->capabilities[$cap] ) ) {
+		|| ! isset( $bp->groups->statuses[$status]->properties[$cap] ) ) {
 		return false;
 	}
-	$bp->groups->statuses[$status]->capabilities[$cap] = $value;
+	$bp->groups->statuses[$status]->properties[$cap] = $value;
 	return true;
 }
 
@@ -308,52 +308,52 @@ function bp_groups_get_group_status_object( $group_status ) {
 }
 
 /**
- * Retrieve a group status object's capabilities by the status name.
+ * Retrieve a group status object's properties ties by the status name.
  *
  * @since 2.7.0
  *
  * @param string $group_status The name of the group status.
  *
- * @return array The capabilities array of the group status object.
+ * @return array The properties array of the group status object.
  */
-function bp_groups_get_group_status_capabilities( $group_status ) {
+function bp_groups_get_group_status_properties( $group_status ) {
 
 	$status = bp_groups_get_group_status_object( $group_status );
 
-	if ( empty( $status->capabilities ) ) {
-		return null;
+	if ( empty( $status->properties ) ) {
+		return array();
 	}
 
-	return $status->capabilities;
+	return $status->properties;
 }
 
 /**
- * Add a group capability to an existing status.
+ * Add a property to an existing status.
  *
- * Edit an existing group capability by changing the value.
+ * Edit an existing status property by changing the value.
  *
  * @since 2.7.0
  *
  * @param string $status The name of the status to edit.
- * @param string $cap    Capability to edit.
- * @param string $value  New value of the capability.
+ * @param string $prop    Property to edit.
+ * @param string $value  New value of the property.
  *
- * @return array $capabilities Capabilities array for specified group.
+ * @return array $properties Properties array for specified group.
  */
-function bp_groups_get_group_capabilities( $group ) {
-	// Have the group's capabilities been populated?
-	if ( is_object( $group ) && ! isset( $group->capabilities ) ) {
+function bp_groups_get_group_properties( $group ) {
+	// Have the group's properties been populated?
+	if ( is_object( $group ) && ! isset( $group->properties ) ) {
 		$group = groups_get_group( array( 'group_id' => $group->id, 'populate_extras' => true ) );
 	} elseif ( is_int( $group ) ) {
 		$group = groups_get_group( array( 'group_id' => (int) $group, 'populate_extras' => true ) );
 	}
 
-	if ( ! isset( $group->capabilities ) ) {
+	if ( ! isset( $group->properties ) ) {
 		return false;
 	}
 
-	if ( ! empty( $group->capabilities ) ) {
-		return $group->capabilities;
+	if ( ! empty( $group->properties ) ) {
+		return $group->properties;
 	} else {
 		return false;
 	}
@@ -363,93 +363,93 @@ function bp_groups_get_group_capabilities( $group ) {
  * Check whether a group status has a value for a capability.
  *
  * If the capability has a non-falsey value, it is returned, so this funciton
- * can be used to check and fetch capability values. To check the capabilities
- * of a specific group, use `bp_groups_group_has_cap()` below.
+ * can be used to check and fetch capability values. To check the properties
+ * of a specific group, use `bp_groups_group_has_property()` below.
  *
  * @since 2.7.0
  *
  * @param string $status The name of the status to check.
- * @param string $cap    Capability to check.
+ * @param string $prop   Capability to check.
  *
  * @return mixed|bool Returns the value stored for the capability if set, false otherwise.
  */
-function bp_groups_group_status_has_cap( $status, $cap ) {
+function bp_groups_group_status_has_property( $status, $prop ) {
 	$bp = buddypress();
 
-	if ( ! isset( $bp->groups->statuses[$status] ) || ! isset( $bp->groups->statuses[$status]->capabilities ) ) {
+	if ( ! isset( $bp->groups->statuses[$status]->properties ) ) {
 		return false;
 	}
 
 	/**
-	 * Filter which capabilities are associated with a group status.
+	 * Filter which properties are associated with a group status.
 	 *
 	 * @since 2.7.0
 	 *
-	 * @param array  $capabilities Array of capabilities for this status.
-	 * @param string $status       Status name.
-	 * @param string $cap          Capability name.
+	 * @param array  $properties Array of properties for this status.
+	 * @param string $status     Status name.
+	 * @param string $prop       Capability name.
 	 */
-	$capabilities = apply_filters( 'bp_groups_group_status_has_cap', $bp->groups->statuses[$status]->capabilities, $status, $cap );
+	$properties = apply_filters( 'bp_groups_group_status_has_property', $bp->groups->statuses[$status]->properties, $status, $prop );
 
-	if ( ! empty( $capabilities[$cap] ) ) {
-		return $capabilities[$cap];
+	if ( ! empty( $properties[$prop] ) ) {
+		return $properties[$prop];
 	} else {
 		return false;
 	}
 }
 
 /**
- * Check whether a group has a value for a capability.
+ * Check whether a group has a value for a property.
  *
- * If the capability has a non-falsey value, it is returned, so this funciton
- * can be used to check and fetch capability values. To check the capabilities
- * of a status generally, use `bp_groups_group_status_has_cap()` above.
- * To filter a particular group's capabilities, use the
- * `bp_groups_group_object_set_caps` filter hook.
+ * If the property has a non-falsey value, it is returned, so this funciton
+ * can be used to check and fetch property values. To check the properties
+ * of a status generally, use `bp_groups_group_status_has_property()` above.
+ * To filter a particular group's properties, use the
+ * `bp_groups_group_object_set_properties` filter hook.
  *
  * @since 2.7.0
  *
  * @param object|int $group Group object or id of the group to check.
- * @param string     $cap   Capability to check.
+ * @param string     $prop  Property to check.
  *
- * @return mixed|bool Returns the value stored for the capability if set, false otherwise.
+ * @return mixed|bool Returns the value stored for the property if set, false otherwise.
  */
-function bp_groups_group_has_cap( $group, $cap ) {
-	// Have the group's capabilities been populated?
-	if ( is_object( $group ) && ! isset( $group->capabilities ) ) {
+function bp_groups_group_has_property( $group, $prop ) {
+	// Have the group's properties been populated?
+	if ( is_object( $group ) && ! isset( $group->properties ) ) {
 		$group = groups_get_group( array( 'group_id' => $group->id, 'populate_extras' => true ) );
 	} elseif ( is_int( $group ) ) {
 		$group = groups_get_group( array( 'group_id' => (int) $group, 'populate_extras' => true ) );
 	}
 
-	if ( ! isset( $group->capabilities ) ) {
+	if ( ! isset( $group->properties ) ) {
 		return false;
 	}
 
-	if ( ! empty( $group->capabilities[$cap] ) ) {
-		return $group->capabilities[$cap];
+	if ( ! empty( $group->properties[$prop] ) ) {
+		return $group->properties[$prop];
 	} else {
 		return false;
 	}
 }
 
 /**
- * User-friendly descriptions for each group capability.
+ * User-friendly descriptions for each group property.
  *
- * Used on the group settings and create screens to describe the capabilities
+ * Used on the group settings and create screens to describe the properties
  * of each group status.
  *
  * @since 2.7.0
  *
- * @param string $cap   Capability to check.
- * @param mixed  $value The value of the capability we'd like to describe.
+ * @param string $prop  Property to check.
+ * @param mixed  $value The value of the property we'd like to describe.
  *
- * @return mixed|bool Returns the value stored for the capability if set, false otherwise.
+ * @return mixed|bool Returns the value stored for the property if set, false otherwise.
  */
-function bp_groups_group_capabilities_description( $cap, $value ) {
+function bp_groups_group_properties_description( $prop, $value ) {
 	$retval = '';
 
-	switch ( $cap ) {
+	switch ( $prop ) {
 		case 'join_method':
 			if ( 'anyone_can_join' == $value ) {
 				$retval = __( 'Any site member can join this group.', 'buddypress' );
@@ -479,15 +479,15 @@ function bp_groups_group_capabilities_description( $cap, $value ) {
 			break;
 		default:
 			/**
-			 * Provide the group capability description for custom capabilities.
+			 * Provide the group property description for custom properties.
 			 *
 			 * @since 2.7.0
 			 *
-			 * @param string $retval The description of the capability and value combination.
-			 * @param string $cap    Capability name.
-			 * @param string $name   Value for the capability.
+			 * @param string $retval The description of the property and value combination.
+			 * @param string $prop   Property name.
+			 * @param string $name   Value for the property.
 			 */
-			$retval = apply_filters( 'bp_groups_group_custom_capabilities_description', $retval, $cap, $value );
+			$retval = apply_filters( 'bp_groups_group_custom_properties_description', $retval, $prop, $value );
 			break;
 	}
 
@@ -576,3 +576,51 @@ add_action( 'groups_accept_invite', 'bp_groups_cache_invalidate_last_changed_inc
 add_action( 'groups_reject_invite', 'bp_groups_cache_invalidate_last_changed_incrementor' );
 // More, too. Promotions, etc.
 
+/**
+ * Filter the bp_user_can value to determine what the user can do with a
+ */
+function bp_groups_user_can_filter( $retval, $user_id, $capability, $site_id, $args ) {
+	switch ( $capability ) {
+		case 'groups_join_group':
+			// The group object could be passed as $args['group']. Else, $args['group_id'] may be passed.
+			if ( is_object( $args['group'] ) ) {
+				if ( isset( $args['group']->properties ) ) {
+					$group = $args['group'];
+				} else {
+					$group = groups_get_group( array( 'group_id' => $args['group']->id, 'populate_extras' => true ) );
+				}
+			} elseif ( is_int(  $args['group_id'] ) ) {
+				$group = groups_get_group( array( 'group_id' => (int) $args['group_id'], 'populate_extras' => true ) );
+			}
+
+			// The group must allow joining, and the user should not currently be a member.
+			if ( 'anyone_can_join' == bp_groups_group_has_property( $group, 'join_method' ) && ! groups_is_user_member( $user_id, $group->id ) ) {
+				$retval = true;
+			}
+
+			break;
+
+		case 'groups_request_membership':
+			// The group object could be passed as $args['group']. Else, $args['group_id'] may be passed.
+			if ( is_object( $args['group'] ) ) {
+				if ( isset( $args['group']->properties ) ) {
+					$group = $args['group'];
+				} else {
+					$group = groups_get_group( array( 'group_id' => $args['group']->id, 'populate_extras' => true ) );
+				}
+			} elseif ( is_int(  $args['group_id'] ) ) {
+				$group = groups_get_group( array( 'group_id' => (int) $args['group_id'], 'populate_extras' => true ) );
+			}
+
+			// The group must accept membership requests, and the user should not currently be a member.
+			if ( 'accepts_membership_requests' == bp_groups_group_has_property( $group, 'join_method' ) && ! groups_is_user_member( $user_id, $group->id ) ) {
+				$retval = true;
+			}
+
+			break;
+	}
+
+	return $retval;
+
+}
+add_filter( 'bp_user_can', 'bp_groups_user_can_filter', 10, 5 );

@@ -316,7 +316,7 @@ function bp_groups_disable_at_mention_notification_for_non_public_groups( $send,
 
 	if ( 'groups' === $activity->component ) {
 		$group = groups_get_group( array( 'group_id' => $activity->item_id ) );
-		if ( 'anyone' != bp_groups_group_has_cap( $group, 'access_group' ) && ! groups_is_user_member( $user_id, $group->id ) ) {
+		if ( 'anyone' != bp_groups_group_has_property( $group, 'access_group' ) && ! groups_is_user_member( $user_id, $group->id ) ) {
 			$send = false;
 		}
 	}

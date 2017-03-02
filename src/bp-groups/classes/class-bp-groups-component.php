@@ -198,6 +198,8 @@ class BP_Groups_Component extends BP_Component {
 		// Are we viewing a single group?
 		if ( bp_is_groups_component() && $group_id = BP_Groups_Group::group_exists( bp_current_action() ) ) {
 
+			// TODO: Also could change group_exists to return the true id (for old slugs). Then we'd need to change the current action below to be the current slug.
+
 			$bp->is_single_item  = true;
 
 			/**
@@ -226,7 +228,7 @@ class BP_Groups_Component extends BP_Component {
 
 			// When in a single group, the first action is bumped down one because of the
 			// group name, so we need to adjust this and set the group name to current_item.
-			$bp->current_item   = bp_current_action();
+			$bp->current_item   = bp_current_action(); // @TODO could use the group name here.
 			$bp->current_action = bp_action_variable( 0 );
 			array_shift( $bp->action_variables );
 
@@ -262,7 +264,15 @@ class BP_Groups_Component extends BP_Component {
 			// Initialize the nav for the groups component.
 			$this->nav = new BP_Core_Nav( $this->current_group->id );
 
-		// Set current_group to 0 to prevent debug errors.
+		// Check if the unfound slug is an old slug for a current group.
+		} elseif ( bp_is_groups_component() && $group_id = BP_Groups_Group::get_id_from_previous_slug( bp_current_action() ) ) {
+
+			// Redirect to the current URL for the group.
+			$redirect = bp_get_group_permalink( groups_get_group( $group_id ) );
+			wp_redirect( $redirect );
+			die();
+
+			// Set current_group to 0 to prevent debug errors.
 		} else {
 			$this->current_group = 0;
 		}
@@ -312,6 +322,8 @@ class BP_Groups_Component extends BP_Component {
 			$this->slug,
 			$this->root_slug,
 		) );
+
+		// @TODO Maybe redirect here if old slug is found.
 
 		// If the user was attempting to access a group, but no group by that name was found, 404.
 		if ( bp_is_groups_component() && empty( $this->current_group ) && empty( $this->current_directory_type ) && bp_current_action() && ! in_array( bp_current_action(), $this->forbidden_names ) ) {

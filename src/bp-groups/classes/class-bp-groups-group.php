@@ -645,6 +645,26 @@ class BP_Groups_Group {
 	}
 
 	/**
+	 * Get whether a group exists for an old slug.
+	 *
+	 * @since 2.9.0
+	 *
+	 * @param string      $slug       Slug to check.
+	 * @return int|null Group ID if found; null if not.
+	 */
+	public static function get_id_from_previous_slug( $slug ) {
+		global $wpdb;
+		/*
+		 * In the case of several groups having had the same slug,
+		 * return the result that was active most recently.
+		 */
+		$table_name = buddypress()->groups->table_name_groupmeta;
+		$maybe_id = $wpdb->get_var( $wpdb->prepare( "SELECT group_id FROM {$table_name} WHERE meta_key = 'previous_slug' AND meta_value = %s ORDER BY id DESC", strtolower( $slug ) ) );
+
+		return is_numeric( $maybe_id ) ? (int) $maybe_id : $maybe_id;
+	}
+
+	/**
 	 * Get IDs of users with outstanding invites to a given group from a specified user.
 	 *
 	 * @since 1.6.0

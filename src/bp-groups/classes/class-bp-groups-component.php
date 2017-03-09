@@ -194,7 +194,10 @@ class BP_Groups_Component extends BP_Component {
 		parent::setup_globals( $args );
 
 		/* Single Group Globals **********************************************/
-
+			$towrite = PHP_EOL . 'bp_current_action: ' . print_r( bp_current_action(), TRUE );
+			$fp = fopen('editable-slugs.txt', 'a');
+			fwrite($fp, $towrite);
+			fclose($fp);
 		// Are we viewing a single group?
 		if ( bp_is_groups_component() && $group_id = BP_Groups_Group::group_exists( bp_current_action() ) ) {
 
@@ -267,12 +270,33 @@ class BP_Groups_Component extends BP_Component {
 		// Check if the unfound slug is an old slug for a current group.
 		} elseif ( bp_is_groups_component() && $group_id = BP_Groups_Group::get_id_from_previous_slug( bp_current_action() ) ) {
 
-			// Redirect to the current URL for the group.
-			$redirect = bp_get_group_permalink( groups_get_group( $group_id ) );
-			wp_redirect( $redirect );
-			die();
+			/*
+			 * The requested group URL is out of date. Redirect to the current
+			 * URL for the group. Start by fetching current information.
+			 */
+			$group_object      = groups_get_group( $group_id );
+			$current_permalink = bp_get_group_permalink( $group_object );
 
-			// Set current_group to 0 to prevent debug errors.
+			/*
+			 * Fake the group object using the old slug. Then, we can use
+			 * bp_get_group_permalink(), ensuring that any filters on the
+			 * permalink are applied.
+			 */
+			$fake_group_object       = clone $group_object;
+			$fake_group_object->slug = bp_current_action();
+			$old_permalink           = bp_get_group_permalink( $fake_group_object );
+
+			// Attempt to send the user to same screen, but using the current group slug.
+			if ( ! empty( $_SERVER['REQUEST_URI'] ) ) {
+				$redirect = str_replace( $old_permalink, $current_permalink, site_url( $_SERVER['REQUEST_URI'] ) );
+			} else {
+				$redirect = $current_permalink;
+			}
+
+			wp_redirect( $redirect );
+			wp_die();
+
+		// Set current_group to 0 to prevent debug errors.
 		} else {
 			$this->current_group = 0;
 		}

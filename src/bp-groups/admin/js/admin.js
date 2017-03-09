@@ -30,7 +30,7 @@
 		} );
 
 		/* Warn before leaving unsaved changes */
-		$(document).on( 'change', 'input#bp-groups-name, input#bp-groups-description, select.bp-groups-role, #bp-groups-settings-section-status input[type="radio"]', function() {
+		$(document).on( 'change', 'input#bp-groups-name, input#bp-groups-slug, input#bp-groups-description, select.bp-groups-role, #bp-groups-settings-section-status input[type="radio"]', function() {
 			window.warn_on_leave = true;
 		});
 

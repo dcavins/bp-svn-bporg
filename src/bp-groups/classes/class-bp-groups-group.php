@@ -654,9 +654,10 @@ class BP_Groups_Group {
 	 */
 	public static function get_id_from_previous_slug( $slug ) {
 		global $wpdb;
+
 		/*
 		 * In the case of several groups having had the same slug,
-		 * return the result that was active most recently.
+		 * return the group that most recently used that slug.
 		 */
 		$table_name = buddypress()->groups->table_name_groupmeta;
 		$maybe_id = $wpdb->get_var( $wpdb->prepare( "SELECT group_id FROM {$table_name} WHERE meta_key = 'previous_slug' AND meta_value = %s ORDER BY id DESC", strtolower( $slug ) ) );

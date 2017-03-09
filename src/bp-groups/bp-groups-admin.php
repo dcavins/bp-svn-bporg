@@ -236,19 +236,26 @@ function bp_groups_admin_load() {
 		$error = 0;
 		$success_new = $error_new = $success_modified = $error_modified = array();
 
-		// Group name and description are handled with
+		// Group name, slug, and description are handled with
 		// groups_edit_base_group_details().
-		if ( !groups_edit_base_group_details( $group_id, $_POST['bp-groups-name'], $_POST['bp-groups-description'], 0 ) ) {
+		if ( ! groups_edit_base_group_details( array(
+				'group_id'       => $group_id,
+				'name'           => $_POST['bp-groups-name'],
+				'slug'           => $_POST['bp-groups-slug'],
+				'description'    => $_POST['bp-groups-description'],
+				'notify_members' => false,
+			) ) ) {
 			$error = $group_id;
+		}
 
-			// Using negative integers for different error messages... eek!
-			if ( empty( $_POST['bp-groups-name'] ) && empty( $_POST['bp-groups-description'] ) ) {
-				$error = -3;
-			} elseif ( empty( $_POST['bp-groups-name'] ) ) {
-				$error = -1;
-			} elseif ( empty( $_POST['bp-groups-description'] ) ) {
-				$error = -2;
-			}
+		// Name, description and slug must not be empty.
+		// @TODO: Fix this to include slug.
+		if ( empty( $_POST['bp-groups-name'] ) && empty( $_POST['bp-groups-description'] ) ) {
+			$error = -3;
+		} elseif ( empty( $_POST['bp-groups-name'] ) ) {
+			$error = -1;
+		} elseif ( empty( $_POST['bp-groups-description'] ) ) {
+			$error = -2;
 		}
 
 		// Enable discussion forum.
@@ -612,7 +619,11 @@ function bp_groups_admin_edit() {
 										?></label>
 										<input type="text" name="bp-groups-name" id="bp-groups-name" value="<?php echo esc_attr( stripslashes( $group_name ) ) ?>" />
 										<div id="bp-groups-permalink-box">
-											<strong><?php esc_html_e( 'Permalink:', 'buddypress' ) ?></strong> <span id="sample-permalink"><?php bp_group_permalink( $group ) ?></span> <a href="<?php echo bp_group_permalink( $group ) ?>" class="button button-small" id="bp-groups-visit-group"><?php esc_html_e( 'Visit Group', 'buddypress' ) ?></a>
+											<strong><?php esc_html_e( 'Permalink:', 'buddypress' ) ?></strong>
+											<span id="sample-permalink">
+												<?php bp_groups_directory_permalink(); ?> <input type="text" id="bp-groups-slug" name="bp-groups-slug" value="<?php bp_group_slug( $group ); ?>" autocomplete="off"> /
+											</span>
+											<a href="<?php echo bp_group_permalink( $group ) ?>" class="button button-small" id="bp-groups-visit-group"><?php esc_html_e( 'Visit Group', 'buddypress' ) ?></a>
 										</div>
 
 										<label for="bp-groups-description" class="screen-reader-text"><?php

@@ -192,6 +192,8 @@ function bp_groups_format_activity_action_group_details_updated( $action, $activ
 
 	}
 
+	// @TODO: Add notice of change in slug?
+
 	/**
 	 * Filters the 'group_details_updated' activity actions.
 	 *
@@ -461,7 +463,7 @@ function bp_groups_group_details_updated_add_activity( $group_id, $old_group, $n
 		return false;
 	}
 
-	if ( ! isset( $old_group->name ) || ! isset( $old_group->description ) ) {
+	if ( ! isset( $old_group->name ) || ! isset( $old_group->slug ) || ! isset( $old_group->description ) ) {
 		return false;
 	}
 
@@ -488,6 +490,14 @@ function bp_groups_group_details_updated_add_activity( $group_id, $old_group, $n
 			'new' => $group->name,
 		);
 	}
+
+	if ( $group->slug !== $old_group->slug ) {
+		$changed['slug'] = array(
+			'old' => $old_group->slug,
+			'new' => $group->slug,
+		);
+	}
+
 
 	if ( $group->description !== $old_group->description ) {
 		$changed['description'] = array(

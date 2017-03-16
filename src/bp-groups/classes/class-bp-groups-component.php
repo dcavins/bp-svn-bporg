@@ -194,10 +194,10 @@ class BP_Groups_Component extends BP_Component {
 		parent::setup_globals( $args );
 
 		/* Single Group Globals **********************************************/
-			$towrite = PHP_EOL . 'bp_current_action: ' . print_r( bp_current_action(), TRUE );
-			$fp = fopen('editable-slugs.txt', 'a');
-			fwrite($fp, $towrite);
-			fclose($fp);
+			// $towrite = PHP_EOL . 'bp_current_action: ' . print_r( bp_current_action(), TRUE );
+			// $fp = fopen('editable-slugs.txt', 'a');
+			// fwrite($fp, $towrite);
+			// fclose($fp);
 		// Are we viewing a single group?
 		if ( bp_is_groups_component() && $group_id = BP_Groups_Group::group_exists( bp_current_action() ) ) {
 

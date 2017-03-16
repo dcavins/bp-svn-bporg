@@ -186,7 +186,7 @@ class BP_Tests_Groups_Activity extends BP_UnitTestCase {
 
 		$this->assertNotEmpty( $a['activities'] );
 
-		$expected = sprintf( __( '%s changed the permalink of the group %s from "%s" to "%s"', 'buddypress' ), bp_core_get_userlink( $u ),  '<a href="' . bp_get_group_permalink( $group ) . '">' . $group->name . '</a>', bp_get_group_permalink( $group ), bp_get_group_permalink( $new_group_details ) );
+		$expected = sprintf( __( '%s changed the permalink of the group %s.', 'buddypress' ), bp_core_get_userlink( $u ),  '<a href="' . bp_get_group_permalink( $new_group_details ) . '">' . $group->name . '</a>' );
 		$this->assertSame( $expected, $a['activities'][0]->action );
 
 		$this->set_current_user( $old_user );

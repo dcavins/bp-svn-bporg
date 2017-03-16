@@ -264,7 +264,7 @@ function groups_edit_base_group_details( $args = array() ) {
 	if ( $r['name'] ) {
 		$group->name = $r['name'];
 	}
-	if ( $r['slug'] ) {
+	if ( $r['slug'] != $group->slug ) {
 		$group->slug = groups_check_slug( $r['slug'] );
 	}
 	if ( $r['description'] ) {
@@ -287,7 +287,7 @@ function groups_edit_base_group_details( $args = array() ) {
 		groups_add_groupmeta( $group->id, 'previous_slug', $old_group->slug );
 	}
 
-	if ( $notify_members ) {
+	if ( $r['notify_members'] ) {
 		groups_notification_group_updated( $group->id, $old_group );
 	}
 
@@ -300,7 +300,7 @@ function groups_edit_base_group_details( $args = array() ) {
 	 * @param BP_Groups_Group $old_group      Group object, before being modified.
 	 * @param bool            $notify_members Whether to send an email notification to members about the change.
 	 */
-	do_action( 'groups_details_updated', $group->id, $old_group, $notify_members );
+	do_action( 'groups_details_updated', $group->id, $old_group, $r['notify_members'] );
 
 	return true;
 }

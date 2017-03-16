@@ -845,7 +845,7 @@ function groups_screen_group_admin_edit_details() {
 				'slug'           => null, // @TODO: Add to settings pane?
 				'description'    => $_POST['group-desc'],
 				'notify_members' => $group_notify_members,
-			) ) {
+			) ) ) {
 				bp_core_add_message( __( 'There was an error updating group details. Please try again.', 'buddypress' ), 'error' );
 			} else {
 				bp_core_add_message( __( 'Group details were successfully updated.', 'buddypress' ) );

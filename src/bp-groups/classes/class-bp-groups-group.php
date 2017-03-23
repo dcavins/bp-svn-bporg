@@ -655,6 +655,37 @@ class BP_Groups_Group {
 	}
 
 	/**
+	 * Get whether a group exists for an old slug.
+	 *
+	 * @since 2.9.0
+	 *
+	 * @param string      $slug       Slug to check.
+	 * @return int|null|false Group ID if found; null if not; false if missing parameters.
+	 */
+	public static function get_id_by_previous_slug( $slug, $table_name = false ) {
+		global $wpdb;
+
+		if ( ! $table_name ) {
+			$table_name = buddypress()->groups->table_name_groupmeta;
+		}
+
+		if ( empty( $slug ) ) {
+			return false;
+		}
+
+		$group_exists_sql = $wpdb->prepare( "SELECT group_id FROM {$table_name} WHERE meta_key = 'previous_slug' AND meta_value = %s ORDER BY id DESC", strtolower( $slug ) );
+		$cached = bp_core_get_incremented_cache( $group_exists_sql, 'bp_groups' );
+		if ( false === $cached ) {
+			$group_id = $wpdb->get_var( $group_exists_sql );
+			bp_core_set_incremented_cache( $group_exists_sql, 'bp_groups', $group_id );
+		} else {
+			$group_id = $cached;
+		}
+
+		return is_numeric( $group_id ) ? (int) $group_id : $group_id;
+	}
+
+	/**
 	 * Get IDs of users with outstanding invites to a given group from a specified user.
 	 *
 	 * @since 1.6.0

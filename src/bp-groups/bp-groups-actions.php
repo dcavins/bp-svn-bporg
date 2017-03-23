@@ -620,3 +620,25 @@ function bp_groups_update_orphaned_groups_on_group_delete( $group ) {
 	}
 }
 add_action( 'bp_groups_delete_group', 'bp_groups_update_orphaned_groups_on_group_delete', 10, 2 );
+
+/**
+ * Check whether the current action refers to an out-of-date group slug.
+ *
+ * @since 2.9.0
+ *
+ * @return void
+ */
+function bp_groups_check_for_previous_slug() {
+	$current_action = bp_current_action();
+
+	if ( bp_is_groups_component() && ! groups_get_id( $current_action ) ) {
+		if ( $group_id = groups_get_id_by_previous_slug( $current_action ) ) {
+			// The requested group URL is out of date. Update to the current slug.
+			$group_object = groups_get_group( $group_id );
+
+			// Call bp_get_group_slug() to make sure all filters are applied.
+			buddypress()->current_action = bp_get_group_slug( $group_object );
+		}
+	}
+}
+add_action( 'bp_groups_setup_globals', 'bp_groups_check_for_previous_slug', 8 );

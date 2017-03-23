@@ -2011,6 +2011,31 @@ class BP_Tests_BP_Groups_Group_TestCases extends BP_UnitTestCase {
 		$found = wp_list_pluck( $groups['groups'], 'id' );
 		$this->assertEqualSets( array( $g1, $g4 ), $found );
 	}
+
+	/**
+	 * @group group_exists
+	 */
+	public function test_group_exists_expected_behavior() {
+		$g1 = $this->factory->group->create( array(
+			'slug' => 'sam',
+		) );
+		$g2 = $this->factory->group->create( array(
+			'slug' => 'sam-e',
+		) );
+
+		$group_id = BP_Groups_Group::group_exists( 'sam' );
+
+		$this->assertSame( $g1, $group_id );
+	}
+
+	/**
+	 * @group group_exists
+	 */
+	public function test_group_exists_expected_behavior_no_match() {
+		$group_id = BP_Groups_Group::group_exists( 'brandywine-river' );
+
+		$this->assertNull( $group_id );
+	}
 }
 
 /**

@@ -876,7 +876,10 @@ class BP_Groups_Group {
 	 *                                            Default: null (no limit).
 	 *     @type int          $user_id            Optional. If provided, results will be limited to groups
 	 *                                            of which the specified user is a member. Default: null.
- 	 *     @type string       $search_terms       Optional. If provided, only groups whose names or descriptions
+ 	 *     @type string       $slug               Optional. If provided, only the group whose slug matches
+	 *                                            the provided slug will be returned.
+	 *                                            Default: false.
+	 *     @type string       $search_terms       Optional. If provided, only groups whose names or descriptions
 	 *                                            match the search terms will be returned. Allows specifying the
 	 *                                            wildcard position using a '*' character before or after the
 	 *                                            string or both. Works in concert with $search_columns.

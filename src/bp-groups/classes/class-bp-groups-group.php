@@ -938,6 +938,7 @@ class BP_Groups_Group {
 			'per_page'           => null,
 			'page'               => null,
 			'user_id'            => 0,
+			'slug'               => false,
 			'search_terms'       => false,
 			'search_columns'     => array(),
 			'group_type'         => '',
@@ -972,6 +973,10 @@ class BP_Groups_Group {
 
 		if ( empty( $r['show_hidden'] ) ) {
 			$where_conditions['hidden'] = "g.status != 'hidden'";
+		}
+
+		if ( ! empty( $r['slug'] ) ) {
+			$where_conditions['slug'] = $wpdb->prepare( "g.slug LIKE %s", $r['slug'] );
 		}
 
 		$search = '';

@@ -876,7 +876,10 @@ class BP_Groups_Group {
 	 *                                            Default: null (no limit).
 	 *     @type int          $user_id            Optional. If provided, results will be limited to groups
 	 *                                            of which the specified user is a member. Default: null.
- 	 *     @type string       $search_terms       Optional. If provided, only groups whose names or descriptions
+ 	 *     @type array|string $slug               Optional. Array or comma-separated list of group slugs to limit
+ 	 *                                            results to.
+	 *                                            Default: false.
+	 *     @type string       $search_terms       Optional. If provided, only groups whose names or descriptions
 	 *                                            match the search terms will be returned. Allows specifying the
 	 *                                            wildcard position using a '*' character before or after the
 	 *                                            string or both. Works in concert with $search_columns.
@@ -938,6 +941,7 @@ class BP_Groups_Group {
 			'per_page'           => null,
 			'page'               => null,
 			'user_id'            => 0,
+			'slug'               => array(),
 			'search_terms'       => false,
 			'search_columns'     => array(),
 			'group_type'         => '',
@@ -972,6 +976,15 @@ class BP_Groups_Group {
 
 		if ( empty( $r['show_hidden'] ) ) {
 			$where_conditions['hidden'] = "g.status != 'hidden'";
+		}
+
+		if ( ! empty( $r['slug'] ) ) {
+			if ( ! is_array( $r['slug'] ) ) {
+				$r['slug'] = preg_split( '/[\s,]+/', $r['slug'] );
+			}
+			$r['slug'] = array_map( 'sanitize_title', $r['slug'] );
+			$slug_in = "'" . implode( "','", $r['slug'] ) . "'";
+			$where_conditions['slug'] = "g.slug IN ({$slug_in})";
 		}
 
 		$search = '';

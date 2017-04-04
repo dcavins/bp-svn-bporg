@@ -645,6 +645,46 @@ class BP_Groups_Group {
 	}
 
 	/**
+	 * Get whether a group exists for an old slug.
+	 *
+	 * @since 2.9.0
+	 *
+	 * @param string      $slug       Slug to check.
+	 *
+	 * @return int|null|false Group ID if found; null if not; false if missing parameters.
+	 */
+	public static function get_id_by_previous_slug( $slug ) {
+		global $wpdb;
+
+		if ( empty( $slug ) ) {
+			return false;
+		}
+
+		$args = array(
+			'meta_query'         => array(
+				array(
+					'key'   => 'previous_slug',
+					'value' => $slug
+				),
+			),
+			'orderby'           => 'meta_id',
+			'order'              => 'DESC',
+			'per_page'           => 1,
+			'page'               => 1,
+			'update_meta_cache'  => false,
+			'show_hidden'        => true,
+		);
+		$groups = BP_Groups_Group::get( $args );
+
+		$group_id = null;
+		if ( $groups['groups'] ) {
+			$group_id = current( $groups['groups'] )->id;
+		}
+
+		return $group_id;
+	}
+
+	/**
 	 * Get IDs of users with outstanding invites to a given group from a specified user.
 	 *
 	 * @since 1.6.0
@@ -1113,6 +1153,11 @@ class BP_Groups_Group {
 			$where_conditions['last_activity'] = "gm_last_activity.meta_key = 'last_activity'";
 		}
 
+		// If Meta ID is the requested order, and there's no meta query, fall back to the default.
+		if ( 'meta_id' === $orderby && empty( $meta_query_sql['join'] ) ) {
+			$orderby = 'date_created';
+		}
+
 		// Sanitize 'order'.
 		$order = bp_esc_sql_order( $order );
 
@@ -1414,6 +1459,10 @@ class BP_Groups_Group {
 
 			case 'random' :
 				$order_by_term = 'rand()';
+				break;
+
+			case 'meta_id' :
+				$order_by_term = buddypress()->groups->table_name_groupmeta . '.id';
 				break;
 		}
 

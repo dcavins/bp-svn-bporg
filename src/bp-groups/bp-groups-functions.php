@@ -85,7 +85,7 @@ function groups_get_group( $group_id ) {
  *     @type string   $description  Optional. The group's description.
  *     @type string   $slug         The group slug.
  *     @type string   $status       The group's status. Accepts 'public', 'private' or
- *                                  'hidden'. Defaults to 'public'.
+ *                                  'hidden' or registered statuses. Defaults to 'public'.
  *     @type int      $parent_id    The ID of the parent group. Default: 0.
  *     @type int      $enable_forum Optional. Whether the group has a forum enabled.
  *                                  If the legacy forums are enabled for this group
@@ -279,11 +279,18 @@ function groups_edit_group_settings( $group_id, $enable_forum, $status, $invite_
 	$group->enable_forum = $enable_forum;
 
 	/**
-	 * Before we potentially switch the group status, if it has been changed to public
-	 * from private and there are outstanding membership requests, auto-accept those requests.
+	 * Before we potentially switch the group status, if the old status required membership requests,
+	 * but the new status allows anyone to join, auto-accept those requests.
 	 */
-	if ( 'private' == $group->status && 'public' == $status )
+	if (
+		// Group membership is currently "by request"...
+		'accepts_membership_requests' == bp_groups_group_has_property( $group, 'join_method' )
+		// and the group is changing to a status that allows open membership.
+		&& 'anyone_can_join' == bp_groups_group_status_has_property( $status, $cap )
+		)
+	{
 		groups_accept_all_pending_membership_requests( $group->id );
+	}
 
 	// Now update the status.
 	$group->status = $status;

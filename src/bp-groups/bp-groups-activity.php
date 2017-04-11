@@ -354,7 +354,7 @@ function groups_record_activity( $args = '' ) {
 			$group = groups_get_group( $args['item_id'] );
 		}
 
-		if ( isset( $group->status ) && 'public' != $group->status ) {
+		if ( 'anyone' != bp_groups_group_has_property( $group, 'access_group' ) ) {
 			$hide_sitewide = true;
 		}
 	}

@@ -127,7 +127,7 @@ class BP_Groups_List_Table extends WP_List_Table {
 			$include_id = (int) $_REQUEST['gid'];
 
 		// Set the current view.
-		if ( isset( $_GET['group_status'] ) && in_array( $_GET['group_status'], array( 'public', 'private', 'hidden' ) ) ) {
+		if ( isset( $_GET['group_status'] ) && in_array( $_GET['group_status'], bp_groups_get_group_statuses( array(), 'names' ) ) ) {
 			$this->view = $_GET['group_status'];
 		}
 
@@ -332,11 +332,23 @@ class BP_Groups_List_Table extends WP_List_Table {
 
 		<ul class="subsubsub">
 			<li class="all"><a href="<?php echo esc_url( $url_base ); ?>" class="<?php if ( 'all' == $this->view ) echo 'current'; ?>"><?php _e( 'All', 'buddypress' ); ?></a> |</li>
-			<li class="public"><a href="<?php echo esc_url( add_query_arg( 'group_status', 'public', $url_base ) ); ?>" class="<?php if ( 'public' == $this->view ) echo 'current'; ?>"><?php printf( _n( 'Public <span class="count">(%s)</span>', 'Public <span class="count">(%s)</span>', $this->group_counts['public'], 'buddypress' ), number_format_i18n( $this->group_counts['public'] ) ); ?></a> |</li>
-			<li class="private"><a href="<?php echo esc_url( add_query_arg( 'group_status', 'private', $url_base ) ); ?>" class="<?php if ( 'private' == $this->view ) echo 'current'; ?>"><?php printf( _n( 'Private <span class="count">(%s)</span>', 'Private <span class="count">(%s)</span>', $this->group_counts['private'], 'buddypress' ), number_format_i18n( $this->group_counts['private'] ) ); ?></a> |</li>
-			<li class="hidden"><a href="<?php echo esc_url( add_query_arg( 'group_status', 'hidden', $url_base ) ); ?>" class="<?php if ( 'hidden' == $this->view ) echo 'current'; ?>"><?php printf( _n( 'Hidden <span class="count">(%s)</span>', 'Hidden <span class="count">(%s)</span>', $this->group_counts['hidden'], 'buddypress' ), number_format_i18n( $this->group_counts['hidden'] ) ); ?></a></li>
-
 			<?php
+			$group_statuses = bp_groups_get_group_statuses( array(), 'objects' );
+			$num_statuses   = count( $group_statuses );
+			$i              = 1;
+			foreach ( $group_statuses as $status ) : ?>
+			<li class="<?php echo $status->name; ?>"><a href="<?php echo esc_url( add_query_arg( 'group_status', $status->name, $url_base ) ); ?>" class="<?php if ( $status->name == $this->view ) echo 'current'; ?>"><?php printf( _n( '%s <span class="count">(%s)</span>', '%s <span class="count">(%s)</span>',
+					$status->display_name,
+					$this->group_counts[$status->name], 'buddypress' ),
+					$status->display_name,
+					number_format_i18n( $this->group_counts[$status->name] ) ); ?></a><?php
+				if ( $i < $num_statuses ) {
+					echo ' |';
+				}
+				$i++;
+			?></li>
+			<?php
+			endforeach;
 
 			/**
 			 * Fires inside listing of views so plugins can add their own.
@@ -591,22 +603,8 @@ class BP_Groups_List_Table extends WP_List_Table {
 	 * @param array $item Information about the current row.
 	 */
 	public function column_status( $item = array() ) {
-		$status      = $item['status'];
-		$status_desc = '';
-
-		// @todo This should be abstracted out somewhere for the whole
-		// Groups component.
-		switch ( $status ) {
-			case 'public' :
-				$status_desc = __( 'Public', 'buddypress' );
-				break;
-			case 'private' :
-				$status_desc = __( 'Private', 'buddypress' );
-				break;
-			case 'hidden' :
-				$status_desc = __( 'Hidden', 'buddypress' );
-				break;
-		}
+		$status_object = bp_groups_get_group_status_object( $item['status'] );
+		$status_desc   = $status_object->display_name;
 
 		/**
 		 * Filters the markup for the Status column.

@@ -22,6 +22,11 @@ do_action( 'bp_before_group_details_admin' ); ?>
 <label for="group-name"><?php _e( 'Group Name (required)', 'buddypress' ); ?></label>
 <input type="text" name="group-name" id="group-name" value="<?php bp_group_name(); ?>" aria-required="true" />
 
+<?php if ( bp_current_user_can( 'bp_moderate' ) ) : ?>
+	<label for="group-slug"><?php _e( 'Group Slug (required)', 'buddypress' ); ?></label>
+	<input type="text" name="group-slug" id="group-slug" value="<?php bp_current_group_slug(); ?>" aria-required="true" />
+<?php endif; ?>
+
 <label for="group-desc"><?php _e( 'Group Description (required)', 'buddypress' ); ?></label>
 <textarea name="group-desc" id="group-desc" aria-required="true"><?php bp_group_description_editable(); ?></textarea>
 

@@ -845,7 +845,7 @@ function groups_screen_group_admin_edit_details() {
 			} elseif ( ! groups_edit_base_group_details( array(
 				'group_id'       => $_POST['group-id'],
 				'name'           => $_POST['group-name'],
-				'slug'           => null, // @TODO: Add to settings pane? If yes, editable by site admin only, or allow group admins to do this?
+				'slug'           => isset( $_POST['group-slug'] ) ? $_POST['group-slug'] : null,
 				'description'    => $_POST['group-desc'],
 				'notify_members' => $group_notify_members,
 			) ) ) {

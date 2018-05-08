@@ -4597,15 +4597,15 @@ body.no-js .buddypress #messages-bulk-management #select-all-messages {
 	}
 }
 
-#buddypress-wrap * {
+.buddypress-wrap * {
 	transition: opacity 0.1s ease-in-out 0.1s;
 }
 
-#buddypress-wrap button,
-#buddypress-wrap a.generic-button,
-#buddypress-wrap a.button,
-#buddypress-wrap input[type="submit"],
-#buddypress-wrap input[type="reset"] {
+.buddypress-wrap button,
+.buddypress-wrap a.generic-button,
+.buddypress-wrap a.button,
+.buddypress-wrap input[type="submit"],
+.buddypress-wrap input[type="reset"] {
 	transition: background 0.1s ease-in-out 0.1s, color 0.1s ease-in-out 0.1s, border-color 0.1s ease-in-out 0.1s;
 }
 

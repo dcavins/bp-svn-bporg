@@ -211,6 +211,7 @@ function bp_version_updater() {
 		bp_update_option( 'bp-active-components', $default_components );
 		bp_core_add_page_mappings( $default_components, 'delete' );
 		bp_core_install_emails();
+		bp_core_install_invitations();
 
 	// Upgrades.
 	} else {
@@ -267,6 +268,11 @@ function bp_version_updater() {
 		// Version 2.7.0.
 		if ( $raw_db_version < 11105 ) {
 			bp_update_to_2_7();
+		}
+
+		// Version 5.0.0.
+		if ( $raw_db_version < 11300 ) {
+			bp_update_to_5_0();
 		}
 	}
 
@@ -540,6 +546,19 @@ function bp_update_to_2_7() {
 
 	// Do not ignore deprecated code for existing installs.
 	bp_add_option( '_bp_ignore_deprecated_code', false );
+}
+
+/**
+ * 5.0.0 update routine.
+ *
+ * - Create the invitations table.
+ * - Migrate requests and invitations to the new table.
+ *
+ * @since 2.7.0
+ */
+function bp_update_to_5_0() {
+	bp_core_install_invitations();
+	//@TODO: Migration function.
 }
 
 /**

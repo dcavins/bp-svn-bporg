@@ -59,3 +59,24 @@ function groups_action_leave_group() {
 	bp_core_load_template( apply_filters( 'groups_template_group_home', 'groups/single/home' ) );
 }
 add_action( 'bp_actions', 'groups_action_leave_group' );
+
+/**
+ * Clean up requests/invites when a member leaves a group.
+ *
+ * @since 5.0.0
+ */
+function groups_action_clean_up_invites_requests( $user_id, $group_id ) {
+	$invites_class = new BP_Groups_Invitations();
+	// Remove invitations/requests where the deleted user is the receiver.
+	$invites_class->delete( array(
+		'user_id' => $user_id,
+		'item_id' => $group_id,
+		'type'    => 'all'
+	) );
+	// Remove invitations where the deleted user is the sender.
+	$invites_class->delete( array(
+		'inviter_id' => $user_id,
+		'item_id'    => $group_id,
+	) );
+}
+add_action( 'bp_groups_member_after_delete', 'groups_action_clean_up_invites_requests', 10, 2 );

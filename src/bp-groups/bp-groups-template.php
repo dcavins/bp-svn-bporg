@@ -5437,7 +5437,7 @@ function bp_group_request_reject_link() {
 		 *
 		 * @param string $value URL to use to reject a membership request.
 		 */
-		return apply_filters( 'bp_get_group_request_reject_link', wp_nonce_url( trailingslashit( bp_get_group_permalink( groups_get_current_group() ) . 'admin/membership-requests/reject/' . $requests_template->request->membership_id ), 'groups_reject_membership_request' ) );
+		return apply_filters( 'bp_get_group_request_reject_link', wp_nonce_url( trailingslashit( bp_get_group_permalink( groups_get_current_group() ) . 'admin/membership-requests/reject/' . $requests_template->request->user_id ), 'groups_reject_membership_request' ) );
 	}
 
 /**
@@ -5461,7 +5461,7 @@ function bp_group_request_accept_link() {
 		 *
 		 * @param string $value URL to use to accept a membership request.
 		 */
-		return apply_filters( 'bp_get_group_request_accept_link', wp_nonce_url( trailingslashit( bp_get_group_permalink( groups_get_current_group() ) . 'admin/membership-requests/accept/' . $requests_template->request->membership_id ), 'groups_accept_membership_request' ) );
+		return apply_filters( 'bp_get_group_request_accept_link', wp_nonce_url( trailingslashit( bp_get_group_permalink( groups_get_current_group() ) . 'admin/membership-requests/accept/' . $requests_template->request->user_id ), 'groups_accept_membership_request' ) );
 	}
 
 /**

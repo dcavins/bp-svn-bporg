@@ -1372,15 +1372,16 @@ class BP_Tests_BP_Groups_Group_TestCases extends BP_UnitTestCase {
 	 */
 	public function test_get_group_extras_invited() {
 		$u = self::factory()->user->create();
-		$g = self::factory()->group->create();
+		$u2 = self::factory()->user->create();
+		$g = self::factory()->group->create( array( 'creator_id' => $u2, 'status' => 'private' ) );
 
-		$invite                = new BP_Groups_Member;
-		$invite->group_id      = $g;
-		$invite->user_id       = $u;
-		$invite->date_modified = bp_core_current_time();
-		$invite->invite_sent   = true;
-		$invite->is_confirmed  = false;
-		$invite->save();
+		// Outstanding invitations should be left intact.
+		groups_invite_user( array(
+			'user_id' => $u,
+			'group_id' => $g,
+			'inviter_id' => $u2,
+			'send_invite' => 1,
+		) );
 
 		$paged_groups = array();
 		$paged_groups[] = new stdClass;
@@ -1411,15 +1412,13 @@ class BP_Tests_BP_Groups_Group_TestCases extends BP_UnitTestCase {
 	 */
 	public function test_get_group_extras_pending() {
 		$u = self::factory()->user->create();
-		$g = self::factory()->group->create();
+		$g = self::factory()->group->create( array( 'status' => 'private' ) );
 
-		$invite                = new BP_Groups_Member;
-		$invite->group_id      = $g;
-		$invite->user_id       = $u;
-		$invite->date_modified = bp_core_current_time();
-		$invite->invite_sent   = false;
-		$invite->is_confirmed  = false;
-		$invite->save();
+		// Create membership request
+		groups_send_membership_request( array(
+			'user_id'       => $u,
+			'group_id'      => $g,
+		) );
 
 		$paged_groups = array();
 		$paged_groups[] = new stdClass;

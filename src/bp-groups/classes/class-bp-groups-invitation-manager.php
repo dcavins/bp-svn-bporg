@@ -18,16 +18,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * @since 5.0.0
  */
-class BP_Groups_Invitations extends BP_Invitations {
-	/**
-	 * The name of the related component.
-	 *
-	 * @since 5.0.0
-	 * @access public
-	 * @var string
-	 */
-	protected $component_name;
-
+class BP_Groups_Invitation_Manager extends BP_Invitation_Manager {
 	/**
 	 * Construct parameters.
 	 *
@@ -38,10 +29,7 @@ class BP_Groups_Invitations extends BP_Invitations {
 	 * }
 	 */
 	public function __construct( $args = '' ) {
-		$this->component_name = buddypress()->groups->id;
-		parent::__construct( array(
-			'component_name' => $this->component_name,
-		) );
+		parent::__construct();
 	}
 
 	/**
@@ -53,7 +41,7 @@ class BP_Groups_Invitations extends BP_Invitations {
 	 * @param int $id The ID of the invitation to mark as sent.
 	 * @return bool True on success, false on failure.
 	 */
-	public function run_send_action( BP_Invitations_Invitation $invitation ) {
+	public function run_send_action( BP_Invitation $invitation ) {
 		// Notify group admins of the pending request
 		if ( 'request' === $invitation->type ) {
 			$admins = groups_get_group_admins( $invitation->item_id );
@@ -112,7 +100,7 @@ class BP_Groups_Invitations extends BP_Invitations {
 	 *
 	 * @since 2.7.0
 	 *
-	 * @see BP_Invitations_Invitation::mark_accepted_by_data()
+	 * @see BP_Invitation::mark_accepted_by_data()
 	 *      for a description of arguments.
 	 */
 	public function mark_accepted( $args ) {

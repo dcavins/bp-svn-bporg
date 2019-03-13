@@ -23,12 +23,12 @@ function groups_screen_group_admin_requests() {
 		return false;
 	}
 
-	$request_action = (string) bp_action_variable( 1 );
-	$user_id        = (int) bp_action_variable( 2 );
+	$request_action = isset( $_GET['action'] ) ? $_GET['action'] : false;
+	$user_id        = isset( $_GET['user_id'] ) ? (int) $_GET['user_id'] : false;
 	$group_id       = bp_get_current_group_id();
 
-	if ( ! empty( $request_action ) && ! empty( $user ) ) {
-		if ( 'accept' == $request_action && is_numeric( $user_id) ) {
+	if ( $request_action && $user_id && $group_id ) {
+		if ( 'accept' === $request_action ) {
 
 			// Check the nonce first.
 			if ( ! check_admin_referer( 'groups_accept_membership_request' ) ) {
@@ -42,7 +42,7 @@ function groups_screen_group_admin_requests() {
 				bp_core_add_message( __( 'Group membership request accepted', 'buddypress' ) );
 			}
 
-		} elseif ( 'reject' == $request_action && is_numeric( $user_id ) ) {
+		} elseif ( 'reject' === $request_action ) {
 			/* Check the nonce first. */
 			if ( ! check_admin_referer( 'groups_reject_membership_request' ) ) {
 				return false;

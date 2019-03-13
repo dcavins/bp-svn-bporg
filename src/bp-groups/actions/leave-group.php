@@ -66,7 +66,7 @@ add_action( 'bp_actions', 'groups_action_leave_group' );
  * @since 5.0.0
  */
 function groups_action_clean_up_invites_requests( $user_id, $group_id ) {
-	$invites_class = new BP_Groups_Invitations();
+	$invites_class = new BP_Groups_Invitation_Manager();
 	// Remove invitations/requests where the deleted user is the receiver.
 	$invites_class->delete( array(
 		'user_id' => $user_id,

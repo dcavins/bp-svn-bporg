@@ -569,8 +569,8 @@ class BuddyPress {
 			'BP_Walker_Category_Checklist' => 'core',
 			'BP_Walker_Nav_Menu_Checklist' => 'core',
 			'BP_Walker_Nav_Menu'           => 'core',
-			'BP_Invitations'               => 'core',
-			'BP_Invitations_Invitation'    => 'core',
+			'BP_Invitation_Manager'        => 'core',
+			'BP_Invitation'                => 'core',
 
 			'BP_Core_Friends_Widget' => 'friends',
 

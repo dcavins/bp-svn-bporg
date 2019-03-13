@@ -1241,7 +1241,7 @@ function groups_is_user_pending( $user_id, $group_id ) {
 		'user_id'     => $user_id,
 		'item_id'     => $group_id,
 	);
-	$invites_class = new BP_Groups_Invitations();
+	$invites_class = new BP_Groups_Invitation_Manager();
 
 	return $invites_class->request_exists( $args );
 }
@@ -1477,7 +1477,7 @@ function groups_invite_user( $args = '' ) {
 	);
 
 	// Create the unsent invitataion.
-	$invites_class = new BP_Groups_Invitations();
+	$invites_class = new BP_Groups_Invitation_Manager();
 	$created       = $invites_class->add_invitation( $inv_args );
 
 	/**
@@ -1510,7 +1510,7 @@ function groups_uninvite_user( $user_id, $group_id, $inviter_id = false ) {
 		return false;
 	}
 
-	$invites_class = new BP_Groups_Invitations();
+	$invites_class = new BP_Groups_Invitation_Manager();
 	$success       = $invites_class->delete( array(
 		'user_id'    => $user_id,
 		'item_id'    => $group_id,
@@ -1546,7 +1546,7 @@ function groups_uninvite_user( $user_id, $group_id, $inviter_id = false ) {
  * @return bool True when the user is a member of the group, otherwise false.
  */
 function groups_accept_invite( $user_id, $group_id ) {
-	$invites_class = new BP_Groups_Invitations();
+	$invites_class = new BP_Groups_Invitation_Manager();
 	$args = array(
 		'user_id'     => $user_id,
 		'item_id'     => $group_id,
@@ -1593,7 +1593,7 @@ function groups_reject_invite( $user_id, $group_id, $inviter_id = false ) {
 		return false;
 	}
 
-	$invites_class = new BP_Groups_Invitations();
+	$invites_class = new BP_Groups_Invitation_Manager();
 	$success       = $invites_class->delete( array(
 		'user_id'    => $user_id,
 		'item_id'    => $group_id,
@@ -1632,7 +1632,7 @@ function groups_delete_invite( $user_id, $group_id, $inviter_id = false ) {
 		return false;
 	}
 
-	$invites_class = new BP_Groups_Invitations();
+	$invites_class = new BP_Groups_Invitation_Manager();
 	$success       = $invites_class->delete( array(
 		'user_id'    => $user_id,
 		'item_id'    => $group_id,
@@ -1710,7 +1710,7 @@ function groups_send_invites( $args = array() ) {
 
 	$invited_users = array();
 
-	$invites_class = new BP_Groups_Invitations();
+	$invites_class = new BP_Groups_Invitation_Manager();
 	foreach ( $invites as $invite ) {
 		$invited_users[] = $invite->user_id;
 		$invites_class->send_invitation_by_id( $invite->id );
@@ -1755,12 +1755,12 @@ function groups_get_invites_for_group( $user_id, $group_id, $sent = null ) {
  *
  * @param int   $group_id ID of the group.
  * @param array $args     Invitation arguments.
- *                        See BP_Invitations_Invitation::get() for list.
+ *                        See BP_Invitation::get() for list.
  *
- * @return array $invites     Matching BP_Invitations_Invitation objects.
+ * @return array $invites     Matching BP_Invitation objects.
  */
 function groups_get_invites( $args = array() ) {
-	$invites_class = new BP_Groups_Invitations();
+	$invites_class = new BP_Groups_Invitation_Manager();
 	return $invites_class->get_invitations( $args );
 }
 
@@ -1817,7 +1817,7 @@ function groups_check_user_has_invite( $user_id, $group_id, $type = 'sent' ) {
 		$args['invite_sent'] = $type;
 	}
 
-	$invites_class = new BP_Groups_Invitations();
+	$invites_class = new BP_Groups_Invitation_Manager();
 
 	return $invites_class->invitation_exists( $args );
 }
@@ -2033,7 +2033,7 @@ function groups_send_membership_request( $args = array() ) {
 		'date_modified' => $r['date_modified'],
 	);
 
-	$invites_class = new BP_Groups_Invitations();
+	$invites_class = new BP_Groups_Invitation_Manager();
 	$request_id = $invites_class->add_request( $inv_args );
 
 	// If a new request was created, send the emails.
@@ -2084,7 +2084,7 @@ function groups_accept_membership_request( $membership_id, $user_id = 0, $group_
 		return false;
 	}
 
-	$invites_class = new BP_Groups_Invitations();
+	$invites_class = new BP_Groups_Invitation_Manager();
 	$args = array(
 		'user_id' => $user_id,
 		'item_id' => $group_id,
@@ -2166,7 +2166,7 @@ function groups_delete_membership_request( $membership_id, $user_id = 0, $group_
 		return false;
 	}
 
-	$invites_class = new BP_Groups_Invitations();
+	$invites_class = new BP_Groups_Invitation_Manager();
 	$success       = $invites_class->delete_requests( array(
 		'user_id' => $user_id,
 		'item_id' => $group_id
@@ -2182,12 +2182,12 @@ function groups_delete_membership_request( $membership_id, $user_id = 0, $group_
  *
  * @param int   $group_id ID of the group.
  * @param array $args     Invitation arguments.
- *                        See BP_Invitations_Invitation::get() for list.
+ *                        See BP_Invitation::get() for list.
  *
- * @return array $requests Matching BP_Invitations_Invitation objects.
+ * @return array $requests Matching BP_Invitation objects.
  */
 function groups_get_requests( $args = array() ) {
-	$invites_class = new BP_Groups_Invitations();
+	$invites_class = new BP_Groups_Invitation_Manager();
 	return $invites_class->get_requests( $args );
 }
 
@@ -2209,7 +2209,7 @@ function groups_check_for_membership_request( $user_id, $group_id ) {
 		'user_id' => $user_id,
 		'item_id' => $group_id,
 	);
-	$invites_class = new BP_Groups_Invitations();
+	$invites_class = new BP_Groups_Invitation_Manager();
 
 	return $invites_class->request_exists( $args );
 }

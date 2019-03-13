@@ -13,20 +13,22 @@ defined( 'ABSPATH' ) || exit;
 /**
  * BP Invitations class.
  *
- * Extend it to manage your component's invitations.
+ * Extend it to manage your class's invitations.
+ * Your extension class, must, at a minimum, provide the
+ * run_send_action() and run_acceptance_action() methods.
  *
  * @since 5.0.0
  */
-class BP_Invitations {
+abstract class BP_Invitation_Manager {
 
 	/**
-	 * The name of the related component.
+	 * The name of the related class.
 	 *
 	 * @since 5.0.0
 	 * @access public
 	 * @var string
 	 */
-	protected $component_name;
+	protected $class_name;
 
 	/**
 	 * Construct parameters.
@@ -34,16 +36,10 @@ class BP_Invitations {
 	 * @since 5.0.0
 	 *
 	 * @param array|string $args {
-
 	 * }
 	 */
 	public function __construct( $args = array() ) {
-		// Component name is required.
-		if ( empty( $args['component_name'] ) ) {
-			return false;
-		}
-
-		$this->component_name = sanitize_key( $args['component_name'] );
+		$this->class_name = sanitize_key( get_class( $this ) );
 	}
 
 	/**
@@ -61,7 +57,7 @@ class BP_Invitations {
 
 	/**
 	 * Add an invitation to a specific user, from a specific user, related to a
-	 * specific component.
+	 * specific class.
 	 *
 	 * @since 5.0.0
 	 *
@@ -70,11 +66,9 @@ class BP_Invitations {
 	 *	   @type int    $user_id ID of the invited user.
 	 *	   @type int    $inviter_id ID of the user who created the invitation.
 	 *	   @type string $invitee_email Email address of the invited user.
-	 * 	   @type string $component_name Name of the related component.
-	 *	   @type string $component_action Name of the related component action.
-	 * 	   @type int    $item_id ID associated with the invitation and component.
+	 * 	   @type int    $item_id ID associated with the invitation and class.
 	 * 	   @type int    $secondary_item_id secondary ID associated with the
-	 *			        invitation and component.
+	 *			        invitation and class.
 	 * 	   @type string $type @TODO.
 	 * 	   @type string $content Extra information provided by the requester
 	 *			        or inviter.
@@ -91,7 +85,6 @@ class BP_Invitations {
 			'user_id'           => 0,
 			'invitee_email'		=> '',
 			'inviter_id'		=> 0,
-			'component_action'  => '',
 			'item_id'           => 0,
 			'secondary_item_id' => 0,
 			'type'				=> 'invite',
@@ -107,7 +100,7 @@ class BP_Invitations {
 		}
 
 		/**
-		 * Is this user allowed to extend invitations from this component/item?
+		 * Is this user allowed to extend invitations in this situation?
 		 *
 		 * @since 5.0.0
 		 *
@@ -122,19 +115,17 @@ class BP_Invitations {
 			'user_id'           => $r['user_id'],
 			'invitee_email'     => $r['invitee_email'],
 			'inviter_id'        => $r['inviter_id'],
-			'component_action'  => $r['component_action'],
 			'item_id'           => $r['item_id'],
 			'secondary_item_id' => $r['secondary_item_id'],
 		) );
 
 		if ( ! $invite_id ) {
 			// Set up the new invitation as a draft.
-			$invitation                    = new BP_Invitations_Invitation;
+			$invitation                    = new BP_Invitation;
 			$invitation->user_id           = $r['user_id'];
 			$invitation->inviter_id        = $r['inviter_id'];
 			$invitation->invitee_email     = $r['invitee_email'];
-			$invitation->component_name    = $this->component_name;
-			$invitation->component_action  = $r['component_action'];
+			$invitation->class             = $this->class_name;
 			$invitation->item_id           = $r['item_id'];
 			$invitation->secondary_item_id = $r['secondary_item_id'];
 			$invitation->type              = $r['type'];
@@ -170,7 +161,7 @@ class BP_Invitations {
 	public function send_invitation_by_id( $invitation_id = 0 ) {
 		$updated = false;
 
-		$invitation = new BP_Invitations_Invitation( $invitation_id );
+		$invitation = new BP_Invitation( $invitation_id );
 
 		if ( ! $invitation->id ) {
 			return false;
@@ -181,7 +172,7 @@ class BP_Invitations {
 		 *
 		 * @since 5.0.0
 		 *
-		 * @param BP_Invitations_Invitation object $invitation Invitation about to be sent.
+		 * @param BP_Invitation object $invitation Invitation about to be sent.
 		 */
 		do_action( 'bp_invitations_send_invitation_by_id_before_send', $invitation );
 
@@ -192,7 +183,6 @@ class BP_Invitations {
 		$request_args = array(
 			'user_id'           => $invitation->user_id,
 			'invitee_email'     => $invitation->invitee_email,
-			'component_action'  => $invitation->component_action,
 			'item_id'           => $invitation->item_id,
 			'secondary_item_id' => $invitation->secondary_item_id,
 		);
@@ -206,14 +196,14 @@ class BP_Invitations {
 		// Perform the send action.
 		$this->run_send_action( $invitation );
 
-		$updated = BP_Invitations_Invitation::mark_sent( $invitation->id );
+		$updated = BP_Invitation::mark_sent( $invitation->id );
 
 		return $updated;
 	}
 
 	/**
 	 * Add a request to an item for a specific user, related to a
-	 * specific component.
+	 * specific class.
 	 *
 	 * @since 5.0.0
 	 *
@@ -221,11 +211,10 @@ class BP_Invitations {
 	 *     Array of arguments describing the invitation. All are optional.
 	 *	   @type int    $user_id ID of the invited user.
 	 *	   @type int    $inviter_id ID of the user who created the invitation.
-	 * 	   @type string $component_name Name of the related component.
-	 *	   @type string $component_action Name of the related component action.
-	 * 	   @type int    $item_id ID associated with the invitation and component.
+	 * 	   @type string $class Name of the invitations class.
+	 * 	   @type int    $item_id ID associated with the invitation and class.
 	 * 	   @type int    $secondary_item_id secondary ID associated with the
-	 *			        invitation and component.
+	 *			        invitation and class.
 	 * 	   @type string $type @TODO.
 	 * 	   @type string $content Extra information provided by the requester
 	 *			        or inviter.
@@ -242,7 +231,6 @@ class BP_Invitations {
 			'user_id'           => 0,
 			'inviter_id'        => 0,
 			'invitee_email'     => '',
-			'component_action'  => '',
 			'item_id'           => 0,
 			'secondary_item_id' => 0,
 			'type'              => 'request',
@@ -258,7 +246,7 @@ class BP_Invitations {
 		}
 
 		/**
-		 * Is this user allowed to make a request to this component/item?
+		 * Is this user allowed to make a request in this situation?
 		 *
 		 * @since 5.0.0
 		 *
@@ -274,7 +262,6 @@ class BP_Invitations {
 		$base_args = array(
 			'user_id'           => $r['user_id'],
 			'invitee_email'     => $r['invitee_email'],
-			'component_action'  => $r['component_action'],
 			'item_id'           => $r['item_id'],
 			'secondary_item_id' => $r['secondary_item_id'],
 		);
@@ -294,12 +281,11 @@ class BP_Invitations {
 			return $this->accept_invitation( $base_args );
 		} else {
 			// Set up the new request.
-			$request                    = new BP_Invitations_Invitation;
+			$request                    = new BP_Invitation;
 			$request->user_id           = $r['user_id'];
 			$request->inviter_id        = $r['inviter_id'];
 			$request->invitee_email     = $r['invitee_email'];
-			$request->component_name    = $this->component_name;
-			$request->component_action  = $r['component_action'];
+			$request->class             = $this->class_name;
 			$request->item_id           = $r['item_id'];
 			$request->secondary_item_id = $r['secondary_item_id'];
 			$request->type              = $r['type'];
@@ -326,7 +312,7 @@ class BP_Invitations {
 	public function send_request_notification_by_id( $request_id = 0 ) {
 		$updated = false;
 
-		$request = new BP_Invitations_Invitation( $request_id );
+		$request = new BP_Invitation( $request_id );
 
 		if ( ! $request->id ) {
 			return false;
@@ -342,7 +328,6 @@ class BP_Invitations {
 		$args = array(
 			'user_id'           => $request->user_id,
 			'invitee_email'     => $request->invitee_email,
-			'component_action'  => $request->component_action,
 			'item_id'           => $request->item_id,
 			'secondary_item_id' => $request->secondary_item_id,
 			'invite_sent'       => 'sent'
@@ -357,7 +342,7 @@ class BP_Invitations {
 		// Perform the send action.
 		$this->run_send_action( $request );
 
-		$updated = BP_Invitations_Invitation::mark_sent( $request->id );
+		$updated = BP_Invitation::mark_sent( $request->id );
 
 		return $updated;
 	}
@@ -370,10 +355,10 @@ class BP_Invitations {
 	 * @since 5.0.0
 	 *
 	 * @param int $id ID of the invitation.
-	 * @return BP_Invitations_Invitation object
+	 * @return BP_Invitation object
 	 */
 	public function get_by_id( $id = 0 ) {
-		return new BP_Invitations_Invitation( $id );
+		return new BP_Invitation( $id );
 	}
 
 	/**
@@ -381,7 +366,7 @@ class BP_Invitations {
 	 *
 	 * @since 5.0.0
 	 *
-	 * @see BP_Invitations_Invitation::get() for a description of accepted parameters.
+	 * @see BP_Invitation::get() for a description of accepted parameters.
 	 *
 	 * @return array Located invitations.
 	 */
@@ -390,10 +375,10 @@ class BP_Invitations {
 		if ( empty( $args['type'] ) ) {
 			$args['type'] = 'invite';
 		}
-		// Use this class's component_name property value.
-		$args['component_name'] = $this->component_name;
+		// Use the class_name property value.
+		$args['class'] = $this->class_name;
 
-		return BP_Invitations_Invitation::get( $args );
+		return BP_Invitation::get( $args );
 	}
 
 	/**
@@ -401,7 +386,7 @@ class BP_Invitations {
 	 *
 	 * @since 5.0.0
 	 *
-	 * @see BP_Invitations_Invitation::get() for a description of accepted parameters.
+	 * @see BP_Invitation::get() for a description of accepted parameters.
 	 *
 	 * @return array Located invitations.
 	 */
@@ -411,10 +396,10 @@ class BP_Invitations {
 		$args['inviter_id']  = false;
 		$args['invite_sent'] = 'all';
 
-		// Use this class's component_name property value.
-		$args['component_name'] = $this->component_name;
+		// Use the class_name property value.
+		$args['class'] = $this->class_name;
 
-		return BP_Invitations_Invitation::get( $args );
+		return BP_Invitation::get( $args );
 	}
 
 	/**
@@ -422,7 +407,7 @@ class BP_Invitations {
 	 *
 	 * @since 5.0.0
 	 *
-	 * @see BP_Invitations_Invitation::get() for a description of accepted parameters.
+	 * @see BP_Invitation::get() for a description of accepted parameters.
 	 *
 	 * @return bool|int ID of first found invitation or false if none found.
 	 */
@@ -442,7 +427,7 @@ class BP_Invitations {
 	 *
 	 * @since 5.0.0
 	 *
-	 * @see BP_Invitations_Invitation::get() for a description of accepted parameters.
+	 * @see BP_Invitation::get() for a description of accepted parameters.
 	 *
 	 * @return bool|int ID of existing request or false if none found.
 	 */
@@ -464,12 +449,12 @@ class BP_Invitations {
 	 *
 	 * @since 5.0.0
 	 *
-	 * @see BP_Invitations_Invitation::get() for a description of
+	 * @see BP_Invitation::get() for a description of
 	 *      accepted update/where arguments.
 	 *
 	 * @param array $update_args Associative array of fields to update,
 	 *              and the values to update them to. Of the format
-	 *              array( 'user_id' => 4, 'component_name' => 'groups', )
+	 *              array( 'user_id' => 4 )
 	 *
 	 * @return int|bool Number of rows updated on success, false on failure.
 	 */
@@ -483,14 +468,13 @@ class BP_Invitations {
 		$r = bp_parse_args( $args, array(
 			'user_id'           => 0,
 			'invitee_email'     => '',
-			'component_action'  => '',
 			'item_id'           => null,
 			'secondary_item_id' => null,
 			'invite_sent'       => 'sent',
 		), 'accept_invitation' );
-		$r['component_name'] = $this->component_name;
+		$r['class'] = $this->class_name;
 
-		if ( ! ( ( $r['user_id'] || $r['invitee_email'] ) && $r['component_name'] && $r['item_id'] ) ) {
+		if ( ! ( ( $r['user_id'] || $r['invitee_email'] ) && $r['class'] && $r['item_id'] ) ) {
 			return false;
 		}
 
@@ -510,12 +494,12 @@ class BP_Invitations {
 	 *
 	 * @since 5.0.0
 	 *
-	 * @see BP_Invitations_Invitation::get() for a description of
+	 * @see BP_Invitation::get() for a description of
 	 *      accepted update/where arguments.
 	 *
 	 * @param array $update_args Associative array of fields to update,
 	 *              and the values to update them to. Of the format
-	 *              array( 'user_id' => 4, 'component_name' => 'groups', )
+	 *              array( 'user_id' => 4 )
 	 *
 	 * @return bool Number of rows updated on success, false on failure.
 	 */
@@ -527,13 +511,12 @@ class BP_Invitations {
 		 */
 		$r = bp_parse_args( $args, array(
 			'user_id'           => 0,
-			'component_action'  => '',
 			'item_id'           => null,
 			'secondary_item_id' => null,
 		), 'accept_request' );
-		$r['component_name'] = $this->component_name;
+		$r['class'] = $this->class_name;
 
-		if ( ! ( $r['user_id'] && $r['component_name'] && $r['item_id'] ) ) {
+		if ( ! ( $r['user_id'] && $r['class'] && $r['item_id'] ) ) {
 			return false;
 		}
 
@@ -553,20 +536,20 @@ class BP_Invitations {
 	 *
 	 * @since 5.0.0
 	 *
-	 * @see BP_Invitations_Invitation::get() for a description of
+	 * @see BP_Invitation::get() for a description of
 	 *      accepted update/where arguments.
 	 *
 	 * @param array $update_args Associative array of fields to update,
 	 *              and the values to update them to. Of the format
-	 *              array( 'user_id' => 4, 'component_name' => 'groups', )
+	 *              array( 'user_id' => 4 )
 	 * @param array $where_args Associative array of columns/values, to
 	 *              determine which invitations should be updated. Formatted as
-	 *              array( 'item_id' => 7, 'component_action' => 'members', )
+	 *              array( 'item_id' => 7 )
 	 * @return int|bool Number of rows updated on success, false on failure.
 	 */
 	public function update_invitation( $update_args = array(), $where_args = array() ) {
-		$update_args['component_name'] = $this->component_name;
-		return BP_Invitations_Invitation::update( $update_args, $where_args );
+		$update_args['class'] = $this->class_name;
+		return BP_Invitation::update( $update_args, $where_args );
 	}
 
 
@@ -576,16 +559,14 @@ class BP_Invitations {
 	 *
 	 * @since 5.0.0
 	 *
-	 * @param BP_Invitations_Invitation $invitation The invitation to send.
+	 * @param BP_Invitation $invitation The invitation to send.
 	 * @return bool True on success, false on failure.
 	 */
-	public function run_send_action( BP_Invitations_Invitation $invitation ) {
-		return true;
-	}
+	abstract public function run_send_action( BP_Invitation $invitation );
 
 	/**
 	 * Mark invitations as sent that are found by user_id, inviter_id,
-	 * invitee_email, component name and action, optional item id,
+	 * invitee_email, class name, optional item id,
 	 * optional secondary item id.
 	 *
 	 * @since 5.0.0
@@ -601,10 +582,8 @@ class BP_Invitations {
 	 *                        Special cases
 	 *     @type string|array $invitee_email Email address of invited users
 	 *			              being queried. Can be an array of addresses.
-	 *     @type string|array $component_name Name of the component to
-	 *                        filter by. Can be an array of component names.
-	 *     @type string|array $component_action Name of the action to
-	 *                        filter by. Can be an array of actions.
+	 *     @type string|array $class Name of the class to
+	 *                        filter by. Can be an array of class names.
 	 *     @type int|array    $item_id ID of associated item. Can be an array
 	 *                        of multiple item IDs.
 	 *     @type int|array    $secondary_item_id ID of secondary associated
@@ -612,8 +591,8 @@ class BP_Invitations {
 	 * }
 	 */
 	public function mark_sent( $args ) {
-		$args['component_name'] = $this->component_name;
-		return BP_Invitations_Invitation::mark_sent_by_data( $args );
+		$args['class'] = $this->class_name;
+		return BP_Invitation::mark_sent_by_data( $args );
 	}
 
 	/**
@@ -625,9 +604,7 @@ class BP_Invitations {
 	 * @param int $id The ID of the invitation to mark as sent.
 	 * @return bool True on success, false on failure.
 	 */
-	public function run_acceptance_action( $type = 'invite', $r  ) {
-		return true;
-	}
+	abstract public function run_acceptance_action( $type = 'invite', $r  );
 
 	/**
 	 * Mark invitation as accepted by invitation ID.
@@ -638,22 +615,22 @@ class BP_Invitations {
 	 * @return bool True on success, false on failure.
 	 */
 	public function mark_accepted_by_id( $id ) {
-		return BP_Invitations_Invitation::mark_accepted( $id );
+		return BP_Invitation::mark_accepted( $id );
 	}
 
 	/**
 	 * Mark invitations as sent that are found by user_id, inviter_id,
-	 * invitee_email, component name and action, optional item id,
+	 * invitee_email, class name, optional item id,
 	 * optional secondary item id.
 	 *
 	 * @since 5.0.0
 	 *
-	 * @see BP_Invitations_Invitation::mark_accepted_by_data()
+	 * @see BP_Invitation::mark_accepted_by_data()
 	 *      for a description of arguments.
 	 */
 	public function mark_accepted( $args ) {
-		$args['component_name'] = $this->component_name;
-		return BP_Invitations_Invitation::mark_accepted_by_data( $args );
+		$args['class'] = $this->class_name;
+		return BP_Invitation::mark_accepted_by_data( $args );
 	}
 
 	/** Delete ********************************************************************/
@@ -663,15 +640,15 @@ class BP_Invitations {
 	 *
 	 * @since 5.0.0
 	 *
-	 * @see BP_Invitations_Invitation::delete for a description of arguments.
+	 * @see BP_Invitation::delete for a description of arguments.
 	 * @return int|false Number of rows deleted on success, false on failure.
 	 */
 	public function delete( $args ) {
 		if ( empty( $args['type'] ) ) {
 			$args['type'] = 'invite';
 		}
-		$args['component_name'] = $this->component_name;
-		return BP_Invitations_Invitation::delete( $args );
+		$args['class'] = $this->class_name;
+		return BP_Invitation::delete( $args );
 	}
 
 	/**
@@ -679,7 +656,7 @@ class BP_Invitations {
 	 *
 	 * @since 5.0.0
 	 *
-	 * @see BP_Invitations_Invitation::delete for a description of arguments.
+	 * @see BP_Invitation::delete for a description of arguments.
 	 *
 	 * @return int|false Number of rows deleted on success, false on failure.
 	 */
@@ -689,20 +666,18 @@ class BP_Invitations {
 	}
 
 	/**
-	 * Delete all invitations by component.
+	 * Delete all invitations by class.
 	 *
-	 * Used when clearing out invitations for an entire component. Possibly used
-	 * when deactivating a component that created invitations.
+	 * Used when clearing out invitations for an entire class. Possibly used
+	 * when deactivating a component related to a class that created invitations.
 	 *
 	 * @since 5.0.0
 	 *
-	 * @param string $component_action Optional. Name of the associated action.
 	 * @return int|false Number of rows deleted on success, false on failure.
 	 */
-	public function delete_all( $component_action = false ) {
-		return BP_Invitations_Invitation::delete( array(
-			'component_name'    => $this->component_name,
-			'component_action'  => $component_action,
+	public function delete_all() {
+		return BP_Invitation::delete( array(
+			'class' => $this->class_name,
 		) );
 	}
 

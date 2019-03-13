@@ -1,7 +1,7 @@
 <?php
 
 /**
- * BuddyPress Invitations Class
+ * BuddyPress Invitation Class
  *
  * @package BuddyPress
  * @subpackage Invitations
@@ -19,7 +19,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * @since 5.0.0
  */
-class BP_Invitations_Invitation {
+class BP_Invitation {
 
 	/**
 	 * The invitation ID.
@@ -59,22 +59,13 @@ class BP_Invitations_Invitation {
 	public $invitee_email;
 
 	/**
-	 * The name of the related component.
+	 * The name of the related class.
 	 *
 	 * @since 5.0.0
 	 * @access public
 	 * @var string
 	 */
-	public $component_name;
-
-	/**
-	 * The name of the related component action.
-	 *
-	 * @since 5.0.0
-	 * @access public
-	 * @var string
-	 */
-	public $component_action;
+	public $class;
 
 	/**
 	 * The ID associated with the invitation and component.
@@ -179,8 +170,7 @@ class BP_Invitations_Invitation {
 			'user_id'           => $this->user_id,
 			'inviter_id'        => $this->inviter_id,
 			'invitee_email'     => $this->invitee_email,
-			'component_name'    => $this->component_name,
-			'component_action'  => $this->component_action,
+			'class'             => $this->class,
 			'item_id'           => $this->item_id,
 			'secondary_item_id' => $this->secondary_item_id,
 			'type'              => $this->type,
@@ -189,14 +179,14 @@ class BP_Invitations_Invitation {
 			'invite_sent'       => $this->invite_sent,
 			'accepted'          => $this->accepted,
 		);
-		$data_format = array( '%d', '%d', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%d', '%d' );
+		$data_format = array( '%d', '%d', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%d', '%d' );
 
 		/**
 		 * Fires before an invitation is saved.
 		 *
 		 * @since 5.0.0
 		 *
-		 * @param BP_Invitations_Invitation object $this Characteristics of the invitation to be saved.
+		 * @param BP_Invitation object $this Characteristics of the invitation to be saved.
 		 */
 		do_action_ref_array( 'bp_invitation_before_save', array( &$this ) );
 
@@ -221,7 +211,7 @@ class BP_Invitations_Invitation {
 		 *
 		 * @since 5.0.0
 		 *
-		 * @param BP_Invitations_Invitation object $this Characteristics of the invitation just saved.
+		 * @param BP_Invitation object $this Characteristics of the invitation just saved.
 		 */
 		do_action_ref_array( 'bp_invitation_after_save', array( &$this ) );
 
@@ -239,7 +229,7 @@ class BP_Invitations_Invitation {
 	 */
 	public function populate() {
 		global $wpdb;
-		$invites_table_name = BP_Invitations::get_table_name();
+		$invites_table_name = BP_Invitation_Manager::get_table_name();
 
 		// Check cache for invitation data.
 		$invitation = wp_cache_get( $this->id, 'bp_invitations' );
@@ -259,8 +249,7 @@ class BP_Invitations_Invitation {
 		$this->user_id           = (int) $invitation->user_id;
 		$this->inviter_id        = (int) $invitation->inviter_id;
 		$this->invitee_email     = $invitation->invitee_email;
-		$this->component_name    = $invitation->component_name;
-		$this->component_action  = $invitation->component_action;
+		$this->class             = $invitation->class;
 		$this->item_id           = (int) $invitation->item_id;
 		$this->secondary_item_id = (int) $invitation->secondary_item_id;
 		$this->type              = $invitation->type;
@@ -283,8 +272,7 @@ class BP_Invitations_Invitation {
 	 *	   @type int $user_id ID of the invited user.
 	 *	   @type int $inviter_id ID of the user who created the invitation.
 	 *	   @type string $invitee_email Email address of the invited user.
-	 * 	   @type string $component_name Name of the related component.
-	 *	   @type string $component_action Name of the related component action.
+	 * 	   @type string $class Name of the related class.
 	 * 	   @type int item_id ID associated with the invitation and component.
 	 * 	   @type int secondary_item_id secondary ID associated with the
 	 *			 invitation and component.
@@ -299,7 +287,7 @@ class BP_Invitations_Invitation {
 	 */
 	protected static function _insert( $data = array(), $data_format = array() ) {
 		global $wpdb;
-		return $wpdb->insert( BP_Invitations::get_table_name(), $data, $data_format );
+		return $wpdb->insert( BP_Invitation_Manager::get_table_name(), $data, $data_format );
 	}
 
 	/**
@@ -311,7 +299,7 @@ class BP_Invitations_Invitation {
 	 *
 	 * @param array $data Array of invitation data to update, passed to
 	 *        {@link wpdb::update()}. Accepts any property of a
-	 *        BP_Invitations_Invitation object.
+	 *        BP_Invitation object.
 	 * @param array $where The WHERE params as passed to wpdb::update().
 	 *        Typically consists of array( 'ID' => $id ) to specify the ID
 	 *        of the item being updated. See {@link wpdb::update()}.
@@ -321,7 +309,7 @@ class BP_Invitations_Invitation {
 	 */
 	protected static function _update( $data = array(), $where = array(), $data_format = array(), $where_format = array() ) {
 		global $wpdb;
-		return $wpdb->update( BP_Invitations::get_table_name(), $data, $where, $data_format, $where_format );
+		return $wpdb->update( BP_Invitation_Manager::get_table_name(), $data, $where, $data_format, $where_format );
 	}
 
 	/**
@@ -333,24 +321,24 @@ class BP_Invitations_Invitation {
 	 *
 	 * @param array $where Array of WHERE clauses to filter by, passed to
 	 *        {@link wpdb::delete()}. Accepts any property of a
-	 *        BP_Invitations_Invitation object.
+	 *        BP_Invitation object.
 	 * @param array $where_format See {@link wpdb::insert()}.
 	 * @return int|false The number of rows updated, or false on error.
 	 */
 	protected static function _delete( $where = array(), $where_format = array() ) {
 		global $wpdb;
-		return $wpdb->delete( BP_Invitations::get_table_name(), $where, $where_format );
+		return $wpdb->delete( BP_Invitation_Manager::get_table_name(), $where, $where_format );
 	}
 
 	/**
 	 * Assemble the WHERE clause of a get() SQL statement.
 	 *
-	 * Used by BP_Invitations_Invitation::get() to create its WHERE
+	 * Used by BP_Invitation::get() to create its WHERE
 	 * clause.
 	 *
 	 * @since 5.0.0
 	 *
-	 * @param array $args See {@link BP_Invitations_Invitation::get()}
+	 * @param array $args See {@link BP_Invitation::get()}
 	 *        for more details.
 	 * @return string WHERE clause.
 	 */
@@ -395,38 +383,21 @@ class BP_Invitations_Invitation {
 			$where_conditions['invitee_email'] = "invitee_email IN ({$invitee_email_in})";
 		}
 
-		// component_name
-		if ( ! empty( $args['component_name'] ) ) {
-			if ( ! is_array( $args['component_name'] ) ) {
-				$component_names = explode( ',', $args['component_name'] );
+		// class
+		if ( ! empty( $args['class'] ) ) {
+			if ( ! is_array( $args['class'] ) ) {
+				$class_names = explode( ',', $args['class'] );
 			} else {
-				$component_names = $args['component_name'];
+				$class_names = $args['class'];
 			}
 
 			$cn_clean = array();
-			foreach ( $component_names as $cn ) {
+			foreach ( $class_names as $cn ) {
 				$cn_clean[] = $wpdb->prepare( '%s', $cn );
 			}
 
 			$cn_in = implode( ',', $cn_clean );
-			$where_conditions['component_name'] = "component_name IN ({$cn_in})";
-		}
-
-		// component_action
-		if ( ! empty( $args['component_action'] ) ) {
-			if ( ! is_array( $args['component_action'] ) ) {
-				$component_actions = explode( ',', $args['component_action'] );
-			} else {
-				$component_actions = $args['component_action'];
-			}
-
-			$ca_clean = array();
-			foreach ( $component_actions as $ca ) {
-				$ca_clean[] = $wpdb->prepare( '%s', $ca );
-			}
-
-			$ca_in = implode( ',', $ca_clean );
-			$where_conditions['component_action'] = "component_action IN ({$ca_in})";
+			$where_conditions['class'] = "class IN ({$cn_in})";
 		}
 
 		// item_id
@@ -472,7 +443,7 @@ class BP_Invitations_Invitation {
 		// search_terms
 		if ( ! empty( $args['search_terms'] ) ) {
 			$search_terms_like = '%' . bp_esc_like( $args['search_terms'] ) . '%';
-			$where_conditions['search_terms'] = $wpdb->prepare( "( component_name LIKE %s OR component_action LIKE %s )", $search_terms_like, $search_terms_like );
+			$where_conditions['search_terms'] = $wpdb->prepare( "( class LIKE %s )", $search_terms_like, $search_terms_like );
 		}
 
 		// Custom WHERE
@@ -486,12 +457,12 @@ class BP_Invitations_Invitation {
 	/**
 	 * Assemble the ORDER BY clause of a get() SQL statement.
 	 *
-	 * Used by BP_Invitations_Invitation::get() to create its ORDER BY
+	 * Used by BP_Invitation::get() to create its ORDER BY
 	 * clause.
 	 *
 	 * @since 5.0.0
 	 *
-	 * @param array $args See {@link BP_Invitations_Invitation::get()}
+	 * @param array $args See {@link BP_Invitation::get()}
 	 *        for more details.
 	 * @return string ORDER BY clause.
 	 */
@@ -524,11 +495,11 @@ class BP_Invitations_Invitation {
 	/**
 	 * Assemble the LIMIT clause of a get() SQL statement.
 	 *
-	 * Used by BP_Invitations_Invitation::get() to create its LIMIT clause.
+	 * Used by BP_Invitation::get() to create its LIMIT clause.
 	 *
 	 * @since 5.0.0
 	 *
-	 * @param array $args See {@link BP_Invitations_Invitation::get()}
+	 * @param array $args See {@link BP_Invitation::get()}
 	 *        for more details.
 	 * @return string LIMIT clause.
 	 */
@@ -565,7 +536,7 @@ class BP_Invitations_Invitation {
 	 *
 	 *     $args = array(
 	 *         'user_id' => 4,
-	 *         'component_name' => 'groups',
+	 *         'class'   => 'BP_Groups_Invitation_Manager',
 	 *     );
 	 *
 	 * This will be converted to:
@@ -573,7 +544,7 @@ class BP_Invitations_Invitation {
 	 *     array(
 	 *         'data' => array(
 	 *             'user_id' => 4,
-	 *             'component_name' => 'groups',
+	 *             'class'   => 'BP_Groups_Invitation_Manager',
 	 *         ),
 	 *         'format' => array(
 	 *             '%d',
@@ -586,7 +557,7 @@ class BP_Invitations_Invitation {
 	 * @since 5.0.0
 	 *
 	 * @param $args Associative array of filter arguments.
-	 *        See {@BP_Invitations_Invitation::get()} for a breakdown.
+	 *        See {@BP_Invitation::get()} for a breakdown.
 	 * @return array Associative array of 'data' and 'format' args.
 	 */
 	protected static function get_query_clauses( $args = array() ) {
@@ -619,15 +590,9 @@ class BP_Invitations_Invitation {
 			$where_clauses['format'][] = '%s';
 		}
 
-		// component_name
-		if ( ! empty( $args['component_name'] ) ) {
-			$where_clauses['data']['component_name'] = $args['component_name'];
-			$where_clauses['format'][] = '%s';
-		}
-
-		// component_action
-		if ( ! empty( $args['component_action'] ) ) {
-			$where_clauses['data']['component_action'] = $args['component_action'];
+		// class
+		if ( ! empty( $args['class'] ) ) {
+			$where_clauses['data']['class'] = $args['class'];
 			$where_clauses['format'][] = '%s';
 		}
 
@@ -698,10 +663,8 @@ class BP_Invitations_Invitation {
 	 *     @type string|array $invitee_email     Email address of invited users
 	 *			                                 being queried. Can be an array of
 	 *                                           addresses.
-	 *     @type string|array $component_name    Name of the component to filter by.
-	 *                                           Can be an array of component names.
-	 *     @type string|array $component_action  Name of the action to filter by.
-	 *                                           Can be an array of actions.
+	 *     @type string|array $class             Name of the class to filter by.
+	 *                                           Can be an array of class names.
 	 *     @type int|array    $item_id           ID of associated item.
 	 *                                           Can be an array of multiple item IDs.
 	 *     @type int|array    $secondary_item_id ID of secondary associated item.
@@ -720,8 +683,7 @@ class BP_Invitations_Invitation {
 	 *                                           'accepted' returns accepted invites,
 	 *                                           'pending' returns pending invites,
 	 *                                           'all' returns all. Default: 'pending'
-	 *     @type string       $search_terms      Term to match against component_name
-	 *                                           or component_action fields.
+	 *     @type string       $search_terms      Term to match against class field.
 	 *     @type string       $order_by          Database column to order by.
 	 *     @type string       $sort_order        Either 'ASC' or 'DESC'.
 	 *     @type string       $order_by          Field to order results by.
@@ -734,14 +696,14 @@ class BP_Invitations_Invitation {
 	 *                                           all items).
   	 *     @type string       $fields            Which fields to return. Specify 'item_ids' to fetch a list of Item_IDs.
   	 *                                           Specify 'ids' to fetch a list of Invitation IDs.
- 	 *                                           Default: 'all' (return BP_Invitations_Invitation objects).
+ 	 *                                           Default: 'all' (return BP_Invitation objects).
 	 * }
 	 *
-	 * @return array BP_Invitations_Invitation objects | IDs of found invit.
+	 * @return array BP_Invitation objects | IDs of found invit.
 	 */
 	public static function get( $args = array() ) {
 		global $wpdb;
-		$invites_table_name = BP_Invitations::get_table_name();
+		$invites_table_name = BP_Invitation_Manager::get_table_name();
 
 		// Parse the arguments
 		$r  = bp_parse_args( $args, array(
@@ -749,8 +711,7 @@ class BP_Invitations_Invitation {
 			'user_id'           => false,
 			'inviter_id'        => false,
 			'invitee_email'     => false,
-			'component_name'    => false,
-			'component_action'  => false,
+			'class'             => false,
 			'item_id'           => false,
 			'secondary_item_id' => false,
 			'type'              => 'all',
@@ -787,8 +748,7 @@ class BP_Invitations_Invitation {
 			'user_id'           => $r['user_id'],
 			'inviter_id'		=> $r['inviter_id'],
 			'invitee_email'     => $r['invitee_email'],
-			'component_name'    => $r['component_name'],
-			'component_action'  => $r['component_action'],
+			'class'             => $r['class'],
 			'item_id'           => $r['item_id'],
 			'secondary_item_id' => $r['secondary_item_id'],
 			'type'              => $r['type'],
@@ -847,7 +807,7 @@ class BP_Invitations_Invitation {
 
 		$paged_invites = array();
 		foreach ( $paged_invite_ids as $paged_invite_id ) {
-			$paged_invites[] = new BP_Invitations_Invitation( $paged_invite_id );
+			$paged_invites[] = new BP_Invitation( $paged_invite_id );
 		}
 
 		return $paged_invites;
@@ -858,15 +818,15 @@ class BP_Invitations_Invitation {
 	 *
 	 * @since 5.0.0
 	 *
-	 * @see BP_Invitations_Invitation::get() for a description of
+	 * @see BP_Invitation::get() for a description of
 	 *      arguments.
 	 *
-	 * @param array $args See {@link BP_Invitations_Invitation::get()}.
+	 * @param array $args See {@link BP_Invitation::get()}.
 	 * @return int Count of located items.
 	 */
 	public static function get_total_count( $args ) {
 		global $wpdb;
-		$invites_table_name = BP_Invitations::get_table_name();
+		$invites_table_name = BP_Invitation_Manager::get_table_name();
 
 		// Build the query
 		$select_sql = "SELECT COUNT(*)";
@@ -883,15 +843,15 @@ class BP_Invitations_Invitation {
 	 *
 	 * @since 5.0.0
 	 *
-	 * @see BP_Invitations_Invitation::get() for a description of
+	 * @see BP_Invitation::get() for a description of
 	 *      accepted update/where arguments.
 	 *
 	 * @param array $update_args Associative array of fields to update,
 	 *        and the values to update them to. Of the format
-	 *            array( 'user_id' => 4, 'component_name' => 'groups', )
+	 *            array( 'user_id' => 4, 'class' => 'BP_Groups_Invitation_Manager', )
 	 * @param array $where_args Associative array of columns/values, to
 	 *        determine which rows should be updated. Of the format
-	 *            array( 'item_id' => 7, 'component_action' => 'members', )
+	 *            array( 'item_id' => 7, 'class' => 'BP_Groups_Invitation_Manager', )
 	 * @return int|bool Number of rows updated on success, false on failure.
 	 */
 	public static function update( $update_args = array(), $where_args = array() ) {
@@ -918,12 +878,12 @@ class BP_Invitations_Invitation {
 	 *
 	 * @since 5.0.0
 	 *
-	 * @see BP_Invitations_Invitation::get() for a description of
+	 * @see BP_Invitation::get() for a description of
 	 *      accepted where arguments.
 	 *
 	 * @param array $args Associative array of columns/values, to determine
 	 *        which rows should be deleted.  Of the format
-	 *            array( 'item_id' => 7, 'component_action' => 'members', )
+	 *            array( 'item_id' => 7, 'class' => 'BP_Groups_Invitation_Manager', )
 	 * @return int|bool Number of rows deleted on success, false on failure.
 	 */
 	public static function delete( $args = array() ) {
@@ -959,7 +919,7 @@ class BP_Invitations_Invitation {
 	 *
 	 * @since 5.0.0
 	 *
-	 * @see BP_Invitations_Invitation::delete() for explanation of
+	 * @see BP_Invitation::delete() for explanation of
 	 *      return value.
 	 *
 	 * @param int $id ID of the invitation item to be deleted.
@@ -1001,11 +961,11 @@ class BP_Invitations_Invitation {
 
 	/**
 	 * Mark invitations as sent that are found by user_id, inviter_id, item id, and optional
-	 * secondary item id, and component name and action.
+	 * secondary item id, and class name.
 	 *
 	 * @since 5.0.0
 	 *
- 	 * @param array $args See BP_Invitations_Invitation::update().
+ 	 * @param array $args See BP_Invitation::update().
 	 */
 	public static function mark_sent_by_data( $args ) {
 
@@ -1047,11 +1007,11 @@ class BP_Invitations_Invitation {
 
 	/**
 	 * Mark invitations as accepted that are found by user_id, inviter_id,
-	 * item id, and optional secondary item id, and component name and action.
+	 * item id, and optional secondary item id, and class name.
 	 *
 	 * @since 5.0.0
 	 *
- 	 * @param array $args See BP_Invitations_Invitation::update().
+ 	 * @param array $args See BP_Invitation::update().
 	 */
 	public static function mark_accepted_by_data( $args ) {
 

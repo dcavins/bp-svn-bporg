@@ -1644,7 +1644,7 @@ class BP_Groups_Group {
 			return false;
 		}
 
-		$invites_class = new BP_Groups_Invitations();
+		$invites_class = new BP_Groups_Invitation_Manager();
 
 		return $invites_class->delete( array(
 			'item_id' => $group_id,

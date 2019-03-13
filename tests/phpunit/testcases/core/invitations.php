@@ -1,4 +1,7 @@
 <?php
+
+include_once BP_TESTS_DIR . 'assets/invitations-extensions.php';
+
 /**
  * @group core
  * @group invitations
@@ -12,13 +15,12 @@
 		$u3 = $this->factory->user->create();
 		$this->set_current_user( $u1 );
 
-		$invites_class = new BP_Invitations( array( 'component_name' => 'cakes' ) );
+		$invites_class = new BPTest_Invitation_Manager_Extension();
 
 		// Create a couple of invitations.
 		$invite_args = array(
 			'user_id'           => $u3,
 			'inviter_id'		=> $u1,
-			'component_action'  => 'cupcakes',
 			'item_id'           => 1,
 			'send_invite'       => 'sent',
 		);
@@ -43,13 +45,12 @@
 		$u2 = $this->factory->user->create();
 		$this->set_current_user( $u1 );
 
-		$invites_class = new BP_Invitations( array( 'component_name' => 'blogs' ) );
+		$invites_class = new BPTest_Invitation_Manager_Extension();
 
 		// Create an invitation.
 		$invite_args = array(
 			'user_id'           => $u2,
 			'inviter_id'		=> $u1,
-			'component_action'  => 'blog_invite',
 			'item_id'           => 1,
 			'send_invite'       => 'sent',
 		);
@@ -68,13 +69,12 @@
 		$u3 = $this->factory->user->create();
 		$this->set_current_user( $u1 );
 
-		$invites_class = new BP_Invitations( array( 'component_name' => 'cakes' ) );
+		$invites_class = new BPTest_Invitation_Manager_Extension();
 
 		// Create an invitation.
 		$invite_args = array(
 			'user_id'           => $u3,
 			'inviter_id'		=> $u1,
-			'component_action'  => 'cupcakes',
 			'item_id'           => 1,
 			'send_invite'       => 'sent',
 		);
@@ -83,14 +83,12 @@
 		// Create a request.
 		$request_args = array(
 			'user_id'           => $u3,
-			'component_action'  => 'cupcakes',
 			'item_id'           => 1,
 		);
 		$r1 = $invites_class->add_request( $request_args );
 
 		$get_invites = array(
 			'user_id'          => $u3,
-			'component_action' => 'cupcakes',
 			'accepted'         => 'accepted'
 		);
 		$invites = $invites_class->get_invitations( $get_invites );
@@ -107,13 +105,12 @@
 		$u3 = $this->factory->user->create();
 		$this->set_current_user( $u1 );
 
-		$invites_class = new BP_Invitations( array( 'component_name' => 'cakes' ) );
+		$invites_class = new BPTest_Invitation_Manager_Extension();
 
 		// Create an invitation.
 		$invite_args = array(
 			'user_id'           => $u3,
 			'inviter_id'		=> $u1,
-			'component_action'  => 'cupcakes',
 			'item_id'           => 1,
 			'send_invite'       => 0,
 		);
@@ -122,14 +119,12 @@
 		// Create a request.
 		$request_args = array(
 			'user_id'           => $u3,
-			'component_action'  => 'cupcakes',
 			'item_id'           => 1,
 		);
 		$r1 = $invites_class->add_request( $request_args );
 
 		$get_invites = array(
 			'user_id'          => $u3,
-			'component_action' => 'cupcakes',
 			'accepted'         => 'accepted'
 		);
 		$invites = $invites_class->get_invitations( $get_invites );
@@ -146,13 +141,12 @@
 		$u3 = $this->factory->user->create();
 		$this->set_current_user( $u1 );
 
-		$invites_class = new BP_Invitations( array( 'component_name' => 'cakes' ) );
+		$invites_class = new BPTest_Invitation_Manager_Extension();
 
 		// Create an invitation.
 		$invite_args = array(
 			'user_id'           => $u3,
 			'inviter_id'		=> $u1,
-			'component_action'  => 'cupcakes',
 			'item_id'           => 1,
 			'send_invite'       => 0,
 		);
@@ -161,7 +155,6 @@
 		// Create a request.
 		$request_args = array(
 			'user_id'           => $u3,
-			'component_action'  => 'cupcakes',
 			'item_id'           => 1,
 		);
 		$r1 = $invites_class->add_request( $request_args );
@@ -171,7 +164,6 @@
 		// Check that both the request and invitation are marked 'accepted'.
 		$get_invites = array(
 			'user_id'          => $u3,
-			'component_action' => 'cupcakes',
 			'type'             => 'all',
 			'accepted'         => 'accepted',
 			'fields'           => 'ids'
@@ -188,12 +180,11 @@
 		$u1 = $this->factory->user->create();
 		$this->set_current_user( $u1 );
 
-		$invites_class = new BP_Invitations( array( 'component_name' => 'cakes' ) );
+		$invites_class = new BPTest_Invitation_Manager_Extension();
 
 		// Create a couple of requests.
 		$request_args = array(
 			'user_id'           => $u1,
-			'component_action'  => 'cupcakes',
 			'item_id'           => 7,
 		);
 		$r1 = $invites_class->add_request( $request_args );
@@ -202,7 +193,6 @@
 
 		$get_requests = array(
 			'user_id'           => $u1,
-			'component_action'  => 'cupcakes',
 			'fields'            => 'ids'
 		);
 		$requests = $invites_class->get_requests( $get_requests );
@@ -214,7 +204,7 @@
 	public function test_bp_invitations_add_request_avoid_duplicates() {
 		$old_current_user = get_current_user_id();
 
-		$invites_class = new BP_Invitations( array( 'component_name' => 'cakes' ) );
+		$invites_class = new BPTest_Invitation_Manager_Extension();
 
 		$u1 = $this->factory->user->create();
 		$this->set_current_user( $u1 );
@@ -222,7 +212,6 @@
 		// Create a couple of requests.
 		$request_args = array(
 			'user_id'           => $u1,
-			'component_action'  => 'cupcakes',
 			'item_id'           => 7,
 		);
 		$r1 = $invites_class->add_request( $request_args );
@@ -239,12 +228,11 @@
 		$u2 = $this->factory->user->create();
 		$this->set_current_user( $u1 );
 
-		$invites_class = new BP_Invitations( array( 'component_name' => 'cakes' ) );
+		$invites_class = new BPTest_Invitation_Manager_Extension();
 
 		// Create a request.
 		$request_args = array(
 			'user_id'           => $u2,
-			'component_action'  => 'cupcakes',
 			'item_id'           => 1,
 		);
 		$r1 = $invites_class->add_request( $request_args );
@@ -253,7 +241,6 @@
 		$invite_args = array(
 			'user_id'           => $u2,
 			'inviter_id'		=> $u1,
-			'component_action'  => 'cupcakes',
 			'item_id'           => 1,
 			'send_invite'       => 1,
 		);
@@ -263,7 +250,6 @@
 		$get_invites = array(
 			'user_id'          => $u2,
 			'type'             => 'all',
-			'component_action' => 'cupcakes',
 			'accepted'         => 'accepted',
 			'fields'           => 'ids'
 		);

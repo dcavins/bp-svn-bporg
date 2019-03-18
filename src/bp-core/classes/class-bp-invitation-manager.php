@@ -39,7 +39,7 @@ abstract class BP_Invitation_Manager {
 	 * }
 	 */
 	public function __construct( $args = array() ) {
-		$this->class_name = sanitize_key( get_class( $this ) );
+		$this->class_name = get_class( $this );
 	}
 
 	/**

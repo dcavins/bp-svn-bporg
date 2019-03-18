@@ -170,7 +170,7 @@ class BP_Invitation {
 			'user_id'           => $this->user_id,
 			'inviter_id'        => $this->inviter_id,
 			'invitee_email'     => $this->invitee_email,
-			'class'             => $this->class,
+			'class'             => sanitize_key( $this->class ),
 			'item_id'           => $this->item_id,
 			'secondary_item_id' => $this->secondary_item_id,
 			'type'              => $this->type,
@@ -249,7 +249,7 @@ class BP_Invitation {
 		$this->user_id           = (int) $invitation->user_id;
 		$this->inviter_id        = (int) $invitation->inviter_id;
 		$this->invitee_email     = $invitation->invitee_email;
-		$this->class             = $invitation->class;
+		$this->class             = sanitize_key( $invitation->class );
 		$this->item_id           = (int) $invitation->item_id;
 		$this->secondary_item_id = (int) $invitation->secondary_item_id;
 		$this->type              = $invitation->type;
@@ -393,7 +393,7 @@ class BP_Invitation {
 
 			$cn_clean = array();
 			foreach ( $class_names as $cn ) {
-				$cn_clean[] = $wpdb->prepare( '%s', $cn );
+				$cn_clean[] = $wpdb->prepare( '%s', sanitize_key( $cn ) );
 			}
 
 			$cn_in = implode( ',', $cn_clean );

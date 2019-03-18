@@ -558,7 +558,8 @@ function bp_update_to_2_7() {
  */
 function bp_update_to_5_0() {
 	bp_core_install_invitations();
-	//@TODO: Migration function.
+
+	bp_groups_migrate_invitations();
 }
 
 /**

@@ -3153,3 +3153,37 @@ function bp_groups_pending_received_invitations_personal_data_exporter( $email_a
 		'done' => $done,
 	);
 }
+
+/**
+ * Migrate invitations and requests from pre-5.0 group_members table to invitations table.
+ *
+ * @since 5.0.0
+ */
+function bp_groups_migrate_invitations() {
+	global $wpdb;
+	$bp = buddypress();
+
+	$records = $wpdb->get_results( "SELECT id, group_id, user_id, inviter_id, date_modified, comments, invite_sent FROM {$bp->groups->table_name_members} WHERE is_confirmed = 0 AND is_banned = 0" );
+
+	$processed = array();
+	foreach ( $records as $record ) {
+		$invitation = new BP_Invitation;
+		$invitation->user_id           = $record->user_id;
+		$invitation->inviter_id        = $record->inviter_id;
+		$invitation->invitee_email     = '';
+		$invitation->class             = 'BP_Groups_Invitation_Manager';
+		$invitation->item_id           = $record->group_id;
+		$invitation->secondary_item_id = 0;
+		$invitation->type              = ( 0 === (int) $record->inviter_id ) ? 'request' : 'invite';
+		$invitation->content           = $record->comments;
+		$invitation->date_modified     = $record->date_modified;
+		$invitation->invite_sent       = $record->invite_sent;
+		$invitation->accepted          = 0;
+
+		$invite_id = $invitation->save();
+		$processed[] = (int) $record->id;
+	}
+
+	$ids_to_delete = implode( ',', $processed );
+	var_dump( $wpdb->query( "DELETE FROM {$bp->groups->table_name_members} WHERE ID IN ($ids_to_delete)" ) );
+}

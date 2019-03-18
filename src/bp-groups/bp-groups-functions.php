@@ -948,22 +948,71 @@ function bp_get_user_groups( $user_id, $args = array() ) {
 	), 'get_user_groups' );
 
 	$user_id = intval( $user_id );
+	$invites_prefix = BP_Invitation_Manager::get_table_name() . '_';
 
-	// @TODO-6210: This is tied to the groups membership table. How to include invites/requests from a separate table?
 	$membership_ids = wp_cache_get( $user_id, 'bp_groups_memberships_for_user' );
 	if ( false === $membership_ids ) {
 		$membership_ids = BP_Groups_Member::get_membership_ids_for_user( $user_id );
+		// Fetch invitations and requests.
+		$invitation_ids = groups_get_invites( array(
+			'user_id'     => $user_id,
+			'invite_sent' => 'all',
+			'fields'      => 'ids',
+			'type'        => 'all'
+		) );
+		// Prepend invitation table name.
+		array_walk( $invitation_ids, function ( &$value, $key, $invites_prefix ) { $value = $invites_prefix . $value; }, $invites_prefix );
+		$membership_ids = array_merge( $membership_ids, $invitation_ids );
 		wp_cache_set( $user_id, $membership_ids, 'bp_groups_memberships_for_user' );
 	}
 
 	// Prime the membership cache.
-	$uncached_membership_ids = bp_get_non_cached_ids( $membership_ids, 'bp_groups_memberships' );
+	$uncached_membership_ids = bp_get_non_cached_keys( $membership_ids, 'bp_groups_memberships' );
 	if ( ! empty( $uncached_membership_ids ) ) {
-		$uncached_memberships = BP_Groups_Member::get_memberships_by_id( $uncached_membership_ids );
-
-		foreach ( $uncached_memberships as $uncached_membership ) {
-			wp_cache_set( $uncached_membership->id, $uncached_membership, 'bp_groups_memberships' );
+	// Sort the uncached items into regular memberships and invitations.
+		$uncached_invitation_ids = array();
+		foreach ( $uncached_membership_ids as $key => $membership_id ) {
+			if ( strpos( $membership_id, $invites_prefix ) !== false) {
+				$uncached_invitation_ids[] = substr( $membership_id, strlen( $invites_prefix ) );
+				unset( $uncached_membership_ids[$key] );
+			}
 		}
+
+		// Set memberships.
+		if ( $uncached_membership_ids ) {
+			$uncached_memberships = BP_Groups_Member::get_memberships_by_id( $uncached_membership_ids );
+
+			foreach ( $uncached_memberships as $uncached_membership ) {
+				wp_cache_set( $uncached_membership->id, $uncached_membership, 'bp_groups_memberships' );
+			}
+		}
+
+		// Set invitations/requests.
+		if ( $uncached_invitation_ids ) {
+			$uncached_invitations = groups_get_invites( array(
+				'ids'         => $uncached_invitation_ids,
+				'invite_sent' => 'all',
+				'type'        => 'all'
+			) );
+			foreach ( $uncached_invitations as $uncached_invitation ) {
+				// Reshape the result as a membership db entry.
+				$invitation = new StdClass;
+				$invitation->id            = $uncached_invitation->id;
+				$invitation->group_id      = $uncached_invitation->item_id;
+				$invitation->user_id       = $uncached_invitation->user_id;
+				$invitation->inviter_id    = $uncached_invitation->inviter_id;
+				$invitation->is_admin      = false;
+				$invitation->is_mod	       = false;
+				$invitation->user_title    = '';
+				$invitation->date_modified = $uncached_invitation->date_modified;
+				$invitation->comments      = $uncached_invitation->content;
+				$invitation->is_confirmed  = false;
+				$invitation->is_banned     = false;
+				$invitation->invite_sent   = $uncached_invitation->invite_sent;
+				wp_cache_set( $invites_prefix . $invitation->id, $invitation, 'bp_groups_memberships' );
+			}
+		}
+
 	}
 
 	// Assemble filter array for use in `wp_list_filter()`.

@@ -170,6 +170,28 @@ function bp_get_non_cached_ids( $item_ids, $cache_group ) {
 }
 
 /**
+ * Determine which items from a list do not have cached values,
+ * when the cache ID is not an integer.
+ *
+ * @since 5.0.0
+ *
+ * @param array  $item_keys   Key list.
+ * @param string $cache_group The cache group to check against.
+ * @return array
+ */
+function bp_get_non_cached_keys( $item_keys, $cache_group ) {
+	$uncached = array();
+
+	foreach ( $item_keys as $item_key ) {
+		if ( false === wp_cache_get( $item_key, $cache_group ) ) {
+			$uncached[] = $item_key;
+		}
+	}
+
+	return $uncached;
+}
+
+/**
  * Update the metadata cache for the specified objects.
  *
  * Based on WordPress's {@link update_meta_cache()}, this function primes the

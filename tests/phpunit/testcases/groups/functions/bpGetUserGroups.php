@@ -26,6 +26,7 @@ class BP_Tests_Groups_Functions_BpGetUserGroups extends BP_UnitTestCase {
 		) );
 		self::$groups = $f->group->create_many( 4, array(
 			'creator_id' => self::$admin_user,
+			'status'     => 'private'
 		) );
 
 		$now = time();
@@ -516,7 +517,10 @@ class BP_Tests_Groups_Functions_BpGetUserGroups extends BP_UnitTestCase {
 		$server_name = isset( $_SERVER['SERVER_NAME'] ) ? $_SERVER['SERVER_NAME'] : null;
 		$_SERVER['SERVER_NAME'] = '';
 
-		groups_send_membership_request( self::$user, self::$groups[2] );
+		groups_send_membership_request( array(
+			'user_id' => self::$user,
+			'group_id' => self::$groups[2]
+		) );
 
 		// For `wp_mail()`.
 		if ( is_null( $server_name ) ) {

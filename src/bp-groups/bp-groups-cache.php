@@ -255,6 +255,80 @@ add_action( 'groups_member_before_save', 'bp_groups_clear_user_group_cache_on_me
 add_action( 'groups_member_before_remove', 'bp_groups_clear_user_group_cache_on_membership_save' );
 
 /**
+ * Clear caches on invitation.
+ *
+ * @since 5.0.0
+ *
+ * @param array $args Array of parsed arguments for the group invite.
+ */
+function bp_groups_clear_user_group_cache_on_invitation( $args ) {
+	wp_cache_delete( $args['user_id'], 'bp_groups_memberships_for_user' );
+	wp_cache_delete( $args['group_id'], 'bp_groups_memberships' );
+}
+add_action( 'groups_invite_user', 'bp_groups_clear_user_group_cache_on_invitation' );
+
+/**
+ * Clear caches on uninvitation.
+ *
+ * @since 5.0.0
+ *
+ * @param int $group_id    ID of the group being uninvited from.
+ * @param int $user_id     ID of the user being uninvited.
+ */
+function bp_groups_clear_user_group_cache_on_invitation_uninvite( $group_id, $user_id ) {
+	wp_cache_delete( $user_id, 'bp_groups_memberships_for_user' );
+	wp_cache_delete( $group_id, 'bp_groups_memberships' );
+}
+add_action( 'groups_uninvite_user', 'bp_groups_clear_user_group_cache_on_invitation_uninvite', 10, 2 );
+
+/**
+ * Clear caches on acceptance, rejection or deletion of invitation.
+ *
+ * @since 5.0.0
+ *
+ * @param int $group_id    ID of the group being uninvited from.
+ * @param int $user_id     ID of the user being uninvited.
+ */
+function bp_groups_clear_user_group_cache_on_invitation_change( $user_id, $group_id ) {
+	wp_cache_delete( $user_id, 'bp_groups_memberships_for_user' );
+	wp_cache_delete( $group_id, 'bp_groups_memberships' );
+}
+add_action( 'groups_accept_invite', 'bp_groups_clear_user_group_cache_on_invitation_change', 10, 2 );
+add_action( 'groups_reject_invite', 'bp_groups_clear_user_group_cache_on_invitation_change', 10, 2 );
+add_action( 'groups_delete_invite', 'bp_groups_clear_user_group_cache_on_invitation_change', 10, 2 );
+
+/**
+ * Clear caches on sending of invitations.
+ *
+ * @since 5.0.0
+ *
+ * @param int   $group_id      ID of the group who's being invited to.
+ * @param array $invited_users Array of users being invited to the group.
+ */
+function bp_groups_clear_user_group_cache_on_invitation_send( $group_id, $invited_users ) {
+	foreach ( $invited_users as $invited_user_id ) {
+		wp_cache_delete( $invited_user_id, 'bp_groups_memberships_for_user' );
+	}
+	wp_cache_delete( $group_id, 'bp_groups_memberships' );
+}
+add_action( 'groups_send_invites', 'bp_groups_clear_user_group_cache_on_invitation_send', 10, 2 );
+
+/**
+ * Clear caches on sending of membership request.
+ *
+ * @since 5.0.0
+ *
+ * @param int   $requesting_user_id  ID of the user requesting membership.
+ * @param array $admins              Array of group admins.
+ * @param int   $group_id            ID of the group being requested to
+ */
+function bp_groups_clear_user_group_cache_on_membership_request( $requesting_user_id, $admins, $group_id ) {
+	wp_cache_delete( $requesting_user_id, 'bp_groups_memberships_for_user' );
+	wp_cache_delete( $group_id, 'bp_groups_memberships' );
+}
+add_action( 'groups_membership_requested', 'bp_groups_clear_user_group_cache_on_membership_request', 10, 3 );
+
+/**
  * Clear group memberships cache on miscellaneous actions not covered by the 'after_save' hook.
  *
  * @since 2.6.0
@@ -269,8 +343,6 @@ function bp_groups_clear_user_group_cache_on_other_events( $user_id, $group_id )
 	wp_cache_delete( $membership->id, 'bp_groups_memberships' );
 }
 add_action( 'bp_groups_member_before_delete', 'bp_groups_clear_user_group_cache_on_other_events', 10, 2 );
-add_action( 'bp_groups_member_before_delete_invite', 'bp_groups_clear_user_group_cache_on_other_events', 10, 2 );
-add_action( 'groups_accept_invite', 'bp_groups_clear_user_group_cache_on_other_events', 10, 2 );
 
 /**
  * Reset cache incrementor for the Groups component.

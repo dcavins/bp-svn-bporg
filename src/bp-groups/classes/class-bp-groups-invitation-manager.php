@@ -65,7 +65,8 @@ class BP_Groups_Invitation_Manager extends BP_Invitation_Manager {
 	 *
 	 * @since 2.7.0
 	 *
-	 * @param int $id The ID of the invitation to mark as sent.
+	 * @param string $type Are we accepting an invitation or request?
+	 * @param array  $r    Parameters that describe the invitation being accepted.
 	 * @return bool True on success, false on failure.
 	 */
 	public function run_acceptance_action( $type = 'invite', $r  ) {
@@ -86,6 +87,31 @@ class BP_Groups_Invitation_Manager extends BP_Invitation_Manager {
 
 		if ( ! $member->save() ) {
 			return false;
+		}
+
+		if ( 'request' === $type ) {
+			/**
+			 * Fires after a group membership request has been accepted.
+			 *
+			 * @since 1.0.0
+			 *
+			 * @param int  $user_id  ID of the user who accepted membership.
+			 * @param int  $group_id ID of the group that was accepted membership to.
+			 * @param bool $value    If membership was accepted.
+			 */
+			do_action( 'groups_membership_accepted', $r['user_id'], $r['item_id'], true );
+		} else {
+			/**
+			 * Fires after a user has accepted a group invite.
+			 *
+			 * @since 1.0.0
+			 * @since 2.8.0 The $inviter_id arg was added.
+			 *
+			 * @param int $user_id    ID of the user who accepted the group invite.
+			 * @param int $group_id   ID of the group being accepted to.
+			 * @param int $inviter_id ID of the user who invited this user to the group.
+			 */
+			do_action( 'groups_accept_invite', $r['user_id'], $r['item_id'], $r['inviter_id'] );
 		}
 
 		// Modify group meta.

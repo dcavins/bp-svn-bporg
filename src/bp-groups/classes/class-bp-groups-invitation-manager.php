@@ -101,6 +101,13 @@ class BP_Groups_Invitation_Manager extends BP_Invitation_Manager {
 			 */
 			do_action( 'groups_membership_accepted', $r['user_id'], $r['item_id'], true );
 		} else {
+			// Get an inviter_id from the invitation.
+			$invites = groups_get_invites( $r );
+			$inviter_id = 0;
+			if ( $invites ) {
+				$inviter_id = current( $invites )->inviter_id;
+			}
+
 			/**
 			 * Fires after a user has accepted a group invite.
 			 *
@@ -111,7 +118,7 @@ class BP_Groups_Invitation_Manager extends BP_Invitation_Manager {
 			 * @param int $group_id   ID of the group being accepted to.
 			 * @param int $inviter_id ID of the user who invited this user to the group.
 			 */
-			do_action( 'groups_accept_invite', $r['user_id'], $r['item_id'], $r['inviter_id'] );
+			do_action( 'groups_accept_invite', $r['user_id'], $r['item_id'], $inviter_id );
 		}
 
 		// Modify group meta.

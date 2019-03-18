@@ -1601,28 +1601,8 @@ function groups_accept_invite( $user_id, $group_id ) {
 		'item_id'     => $group_id,
 		'invite_sent' => 'sent',
 	);
-	// Get an inviter_id from the invitation.
- 	$invites = groups_get_invites( $args );
- 	$inviter_id = 0;
- 	if ( $invites ) {
- 		$inviter_id = current( $invites )->inviter_id;
- 	}
 
-	$invites_class->accept_invitation( $args );
-
-	/**
-	 * Fires after a user has accepted a group invite.
-	 *
-	 * @since 1.0.0
-	 * @since 2.8.0 The $inviter_id arg was added.
-	 *
-	 * @param int $user_id    ID of the user who accepted the group invite.
-	 * @param int $group_id   ID of the group being accepted to.
-	 * @param int $inviter_id ID of the user who invited this user to the group.
-	 */
-	do_action( 'groups_accept_invite', $user_id, $group_id, $inviter_id );
-
-	return true;
+	return $invites_class->accept_invitation( $args );
 }
 
 /**
@@ -2138,20 +2118,8 @@ function groups_accept_membership_request( $membership_id, $user_id = 0, $group_
 		'user_id' => $user_id,
 		'item_id' => $group_id,
 	);
-	$invites_class->accept_request( $args );
 
-	/**
-	 * Fires after a group membership request has been accepted.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @param int  $user_id  ID of the user who accepted membership.
-	 * @param int  $group_id ID of the group that was accepted membership to.
-	 * @param bool $value    If membership was accepted.
-	 */
-	do_action( 'groups_membership_accepted', $user_id, $group_id, true );
-
-	return true;
+	return $invites_class->accept_request( $args );
 }
 
 /**

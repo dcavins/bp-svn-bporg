@@ -488,6 +488,7 @@ class BuddyPress {
 		require( $this->plugin_dir . 'bp-core/bp-core-loader.php'           );
 		require( $this->plugin_dir . 'bp-core/bp-core-customizer-email.php' );
 		require( $this->plugin_dir . 'bp-core/bp-core-rest-api.php'         );
+		require( $this->plugin_dir . 'bp-core/bp-core-invitations-cache.php' );
 
 		// Maybe load deprecated functionality (this double negative is proof positive!)
 		if ( ! bp_get_option( '_bp_ignore_deprecated_code', ! $this->load_deprecated ) ) {
@@ -572,6 +573,8 @@ class BuddyPress {
 			'BP_Walker_Category_Checklist' => 'core',
 			'BP_Walker_Nav_Menu_Checklist' => 'core',
 			'BP_Walker_Nav_Menu'           => 'core',
+			'BP_Invitation_Manager'        => 'core',
+			'BP_Invitation'                => 'core',
 
 			'BP_Core_Friends_Widget' => 'friends',
 

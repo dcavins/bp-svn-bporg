@@ -949,6 +949,7 @@ function bp_get_user_groups( $user_id, $args = array() ) {
 
 	$user_id = intval( $user_id );
 
+	// Standard memberships
 	$membership_ids = wp_cache_get( $user_id, 'bp_groups_memberships_for_user' );
 	if ( false === $membership_ids ) {
 		$membership_ids = BP_Groups_Member::get_membership_ids_for_user( $user_id );
@@ -964,6 +965,45 @@ function bp_get_user_groups( $user_id, $args = array() ) {
 			wp_cache_set( $uncached_membership->id, $uncached_membership, 'bp_groups_memberships' );
 		}
 	}
+
+	// Prime the invitations- and requests-as-memberships cache
+	$invitation_ids = array();
+	if ( true !== $r['is_confirmed'] || false !== $r['invite_sent'] ) {
+		$invitation_ids = groups_get_invites( array(
+			'user_id'     => $user_id,
+			'invite_sent' => 'all',
+			'type'        => 'all',
+			'fields'      => 'ids'
+		) );
+
+		// Prime the invitations cache.
+		$uncached_invitation_ids = bp_get_non_cached_ids( $invitation_ids, 'bp_groups_invitations_as_memberships' );
+
+		$uncached_invitations = groups_get_invites( array(
+			'ids'         => $uncached_invitation_ids,
+			'invite_sent' => 'all',
+			'type'        => 'all'
+		) );
+		foreach ( $uncached_invitations as $uncached_invitation ) {
+			// Reshape the result as a membership db entry.
+			$invitation = new StdClass;
+			$invitation->id            = $uncached_invitation->id;
+			$invitation->group_id      = $uncached_invitation->item_id;
+			$invitation->user_id       = $uncached_invitation->user_id;
+			$invitation->inviter_id    = $uncached_invitation->inviter_id;
+			$invitation->is_admin      = false;
+			$invitation->is_mod	       = false;
+			$invitation->user_title    = '';
+			$invitation->date_modified = $uncached_invitation->date_modified;
+			$invitation->comments      = $uncached_invitation->content;
+			$invitation->is_confirmed  = false;
+			$invitation->is_banned     = false;
+			$invitation->invite_sent   = $uncached_invitation->invite_sent;
+			wp_cache_set( $uncached_invitation->id, $invitation, 'bp_groups_invitations_as_memberships' );
+		}
+
+	}
+
 
 	// Assemble filter array for use in `wp_list_filter()`.
 	$filters = wp_array_slice_assoc( $r, array( 'is_confirmed', 'is_banned', 'is_admin', 'is_mod', 'invite_sent' ) );
@@ -1004,6 +1044,36 @@ function bp_get_user_groups( $user_id, $args = array() ) {
 		$group_id = (int) $membership->group_id;
 
 		$groups[ $group_id ] = $membership;
+	}
+
+	// Populate group invitations array from cache, and normalize.
+	foreach ( $invitation_ids as $invitation_id ) {
+		$invitation = wp_cache_get( $invitation_id, 'bp_groups_invitations_as_memberships' );
+
+		// Sanity check.
+		if ( ! isset( $invitation->group_id ) ) {
+			continue;
+		}
+
+		// Integer values.
+		foreach ( $int_keys as $index ) {
+			$invitation->{$index} = intval( $invitation->{$index} );
+		}
+
+		// Boolean values.
+		foreach ( $bool_keys as $index ) {
+			$invitation->{$index} = (bool) $invitation->{$index};
+		}
+
+		foreach ( $filters as $filter_name => $filter_value ) {
+			if ( ! isset( $invitation->{$filter_name} ) || $filter_value != $invitation->{$filter_name} ) {
+				continue 2;
+			}
+		}
+
+		$group_id = (int) $invitation->group_id;
+
+		$groups[ $group_id ] = $invitation;
 	}
 
 	// By default, results are ordered by membership id.

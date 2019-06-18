@@ -3154,5 +3154,7 @@ function bp_groups_migrate_invitations() {
 	}
 
 	$ids_to_delete = implode( ',', $processed );
-	var_dump( $wpdb->query( "DELETE FROM {$bp->groups->table_name_members} WHERE ID IN ($ids_to_delete)" ) );
+	if ( $ids_to_delete ) {
+		$wpdb->query( "DELETE FROM {$bp->groups->table_name_members} WHERE ID IN ($ids_to_delete)" );
+	}
 }

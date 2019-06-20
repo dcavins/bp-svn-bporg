@@ -579,8 +579,6 @@ function bp_core_install_invitations() {
 		) {$charset_collate};";
 	dbDelta( $sql );
 
-	// @TODO: Migrate invitations here
-
 	/**
 	 * Fires after BuddyPress adds the invitations table.
 	 *

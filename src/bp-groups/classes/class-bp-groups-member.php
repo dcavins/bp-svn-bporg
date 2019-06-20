@@ -833,8 +833,32 @@ class BP_Groups_Member {
 			'where'  => '',
 			'limits' => '',
 		);
-//@TODO 6210.
+
 		switch ( $r['type'] ) {
+			case 'pending_request' :
+				return groups_get_requests( array(
+					'user_id'  => $user_id,
+					'page'     => $r['page'],
+					'per_page' => $r['per_page'],
+				) );
+			break;
+
+			case 'pending_received_invitation' :
+				return groups_get_invites( array(
+					'user_id'  => $user_id,
+					'page'     => $r['page'],
+					'per_page' => $r['per_page'],
+				) );
+			break;
+
+			case 'pending_sent_invitation' :
+				return groups_get_invites( array(
+					'inviter_id'  => $user_id,
+					'page'        => $r['page'],
+					'per_page'    => $r['per_page'],
+				) );
+			break;
+
 			case 'membership' :
 			default :
 				$sql['where'] = $wpdb->prepare( "user_id = %d AND is_confirmed = 1", $user_id );
@@ -884,8 +908,8 @@ class BP_Groups_Member {
 	 *
 	 * @global WPDB $wpdb
 	 *
-	 * @param  int $user_id  ID of the user.
-	 * @param  int $group_id ID of the group.
+	 * @param  int $user_id    ID of the user.
+	 * @param  int $group_id   ID of the group.
 	 * @param  int $inviter_id ID of the inviter. Specify if you want to delete
 	 *                         a specific invite. Leave false if you want to
 	 *                         delete all invites to this group.

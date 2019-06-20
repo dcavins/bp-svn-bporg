@@ -585,7 +585,9 @@ function bp_update_to_5_0() {
 
 	bp_core_install_invitations();
 
-	bp_groups_migrate_invitations();
+	if ( bp_is_active( 'groups' ) ) {
+		bp_groups_migrate_invitations();
+	}
 }
 
 /**

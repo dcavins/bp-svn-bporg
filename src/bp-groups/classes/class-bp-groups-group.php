@@ -970,7 +970,7 @@ class BP_Groups_Group {
 		}
 		if ( $page ) {
 			$args['page'] = $page;
- 		}
+		}
 
 		$requests = groups_get_requests( $args );
 		$total    = count( groups_get_membership_requested_user_ids( $group_id ) );

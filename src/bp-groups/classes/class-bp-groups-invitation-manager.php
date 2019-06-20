@@ -22,11 +22,9 @@ class BP_Groups_Invitation_Manager extends BP_Invitation_Manager {
 	/**
 	 * Construct parameters.
 	 *
-	 * @since 3.1.0
+	 * @since 5.0.0
 	 *
-	 * @param array|string $args {
-
-	 * }
+	 * @param array|string $args.
 	 */
 	public function __construct( $args = '' ) {
 		parent::__construct();
@@ -36,7 +34,7 @@ class BP_Groups_Invitation_Manager extends BP_Invitation_Manager {
 	 * This is where custom actions are added to run when notifications of an
 	 * invitation or request need to be generated & sent.
 	 *
-	 * @since 2.7.0
+	 * @since 5.0.0
 	 *
 	 * @param int $id The ID of the invitation to mark as sent.
 	 * @return bool True on success, false on failure.
@@ -63,7 +61,7 @@ class BP_Groups_Invitation_Manager extends BP_Invitation_Manager {
 	 * This is where custom actions are added to run when an invitation
 	 * or request is accepted.
 	 *
-	 * @since 2.7.0
+	 * @since 5.0.0
 	 *
 	 * @param string $type Are we accepting an invitation or request?
 	 * @param array  $r    Parameters that describe the invitation being accepted.
@@ -131,10 +129,12 @@ class BP_Groups_Invitation_Manager extends BP_Invitation_Manager {
 	 * With group invitations, we don't need to keep the old record, so we delete rather than
 	 * mark invitations as "accepted."
 	 *
-	 * @since 2.7.0
+	 * @since 5.0.0
 	 *
 	 * @see BP_Invitation::mark_accepted_by_data()
 	 *      for a description of arguments.
+	 *
+	 * @param array $args.
 	 */
 	public function mark_accepted( $args ) {
 		// Delete all existing invitations/requests to this group for this user.
@@ -149,6 +149,9 @@ class BP_Groups_Invitation_Manager extends BP_Invitation_Manager {
 	 * Should this invitation be created?
 	 *
 	 * @since 5.0.0
+	 *
+	 * @param array $args.
+	 * @return bool
 	 */
 	public function allow_invitation( $args ) {
 		// Does the inviter have this capability?
@@ -173,6 +176,9 @@ class BP_Groups_Invitation_Manager extends BP_Invitation_Manager {
 	 * Should this request be created?
 	 *
 	 * @since 5.0.0
+	 *
+	 * @param array $args.
+	 * @return bool.
 	 */
 	public function allow_request( $args ) {
 		// Does the requester have this capability? (Also checks for duplicates.)

@@ -269,18 +269,18 @@ class BP_Invitation {
 	 *
 	 * @param array $data {
 	 *     Array of invitation data, passed to {@link wpdb::insert()}.
-	 *	   @type int $user_id ID of the invited user.
-	 *	   @type int $inviter_id ID of the user who created the invitation.
-	 *	   @type string $invitee_email Email address of the invited user.
-	 * 	   @type string $class Name of the related class.
-	 * 	   @type int item_id ID associated with the invitation and component.
-	 * 	   @type int secondary_item_id secondary ID associated with the
-	 *			 invitation and component.
-	 * 	   @type string content Extra information provided by the requester
-	 *			 or inviter.
-	 * 	   @type string date_modified Date the invitation was last modified.
-	 * 	   @type int invite_sent Has the invitation been sent, or is it a
-	 *			 draft invite?
+	 *	   @type int    $user_id           ID of the invited user.
+	 *	   @type int    $inviter_id        ID of the user who created the invitation.
+	 *	   @type string $invitee_email     Email address of the invited user.
+	 * 	   @type string $class             Name of the related class.
+	 * 	   @type int    $item_id           ID associated with the invitation and component.
+	 * 	   @type int    $secondary_item_id Secondary ID associated with the invitation and
+	 *                                     component.
+	 * 	   @type string $content           Extra information provided by the requester
+	 *			                           or inviter.
+	 * 	   @type string $date_modified     Date the invitation was last modified.
+	 * 	   @type int    $invite_sent       Has the invitation been sent, or is it a draft
+	 *                                     invite?
 	 * }
 	 * @param array $data_format See {@link wpdb::insert()}.
 	 * @return int|false The number of rows inserted, or false on error.
@@ -297,13 +297,13 @@ class BP_Invitation {
 	 *
 	 * @see wpdb::update() for further description of paramater formats.
 	 *
-	 * @param array $data Array of invitation data to update, passed to
-	 *        {@link wpdb::update()}. Accepts any property of a
-	 *        BP_Invitation object.
-	 * @param array $where The WHERE params as passed to wpdb::update().
-	 *        Typically consists of array( 'ID' => $id ) to specify the ID
-	 *        of the item being updated. See {@link wpdb::update()}.
-	 * @param array $data_format See {@link wpdb::insert()}.
+	 * @param array $data         Array of invitation data to update, passed to
+	 *                            {@link wpdb::update()}. Accepts any property of a
+	 *                            BP_Invitation object.
+	 * @param array $where        The WHERE params as passed to wpdb::update().
+	 *                            Typically consists of array( 'ID' => $id ) to specify the ID
+	 *                            of the item being updated. See {@link wpdb::update()}.
+	 * @param array $data_format  See {@link wpdb::insert()}.
 	 * @param array $where_format See {@link wpdb::insert()}.
 	 * @return int|false The number of rows updated, or false on error.
 	 */
@@ -319,9 +319,9 @@ class BP_Invitation {
 	 *
 	 * @see wpdb::update() for further description of paramater formats.
 	 *
-	 * @param array $where Array of WHERE clauses to filter by, passed to
-	 *        {@link wpdb::delete()}. Accepts any property of a
-	 *        BP_Invitation object.
+	 * @param array $where        Array of WHERE clauses to filter by, passed to
+	 *                            {@link wpdb::delete()}. Accepts any property of a
+	 *                            BP_Invitation object.
 	 * @param array $where_format See {@link wpdb::insert()}.
 	 * @return int|false The number of rows updated, or false on error.
 	 */
@@ -338,8 +338,7 @@ class BP_Invitation {
 	 *
 	 * @since 5.0.0
 	 *
-	 * @param array $args See {@link BP_Invitation::get()}
-	 *        for more details.
+	 * @param array $args See {@link BP_Invitation::get()} for more details.
 	 * @return string WHERE clause.
 	 */
 	protected static function get_where_sql( $args = array() ) {
@@ -462,8 +461,7 @@ class BP_Invitation {
 	 *
 	 * @since 5.0.0
 	 *
-	 * @param array $args See {@link BP_Invitation::get()}
-	 *        for more details.
+	 * @param array $args See {@link BP_Invitation::get()} for more details.
 	 * @return string ORDER BY clause.
 	 */
 	protected static function get_order_by_sql( $args = array() ) {
@@ -499,8 +497,7 @@ class BP_Invitation {
 	 *
 	 * @since 5.0.0
 	 *
-	 * @param array $args See {@link BP_Invitation::get()}
-	 *        for more details.
+	 * @param array $args See {@link BP_Invitation::get()} for more details.
 	 * @return string LIMIT clause.
 	 */
 	protected static function get_paged_sql( $args = array() ) {
@@ -556,8 +553,8 @@ class BP_Invitation {
 	 *
 	 * @since 5.0.0
 	 *
-	 * @param $args Associative array of filter arguments.
-	 *        See {@BP_Invitation::get()} for a breakdown.
+	 * @param array $args Associative array of filter arguments.
+	 *                    See {@BP_Invitation::get()} for a breakdown.
 	 * @return array Associative array of 'data' and 'format' args.
 	 */
 	protected static function get_query_clauses( $args = array() ) {
@@ -847,11 +844,11 @@ class BP_Invitation {
 	 *      accepted update/where arguments.
 	 *
 	 * @param array $update_args Associative array of fields to update,
-	 *        and the values to update them to. Of the format
-	 *            array( 'user_id' => 4, 'class' => 'BP_Groups_Invitation_Manager', )
-	 * @param array $where_args Associative array of columns/values, to
-	 *        determine which rows should be updated. Of the format
-	 *            array( 'item_id' => 7, 'class' => 'BP_Groups_Invitation_Manager', )
+	 *                           and the values to update them to. Of the format
+	 *                           array( 'user_id' => 4, 'class' => 'BP_Groups_Invitation_Manager', ).
+	 * @param array $where_args  Associative array of columns/values, to
+	 *                           determine which rows should be updated. Of the format
+	 *                           array( 'item_id' => 7, 'class' => 'BP_Groups_Invitation_Manager', ).
 	 * @return int|bool Number of rows updated on success, false on failure.
 	 */
 	public static function update( $update_args = array(), $where_args = array() ) {
@@ -883,8 +880,8 @@ class BP_Invitation {
 	 *      accepted where arguments.
 	 *
 	 * @param array $args Associative array of columns/values, to determine
-	 *        which rows should be deleted.  Of the format
-	 *            array( 'item_id' => 7, 'class' => 'BP_Groups_Invitation_Manager', )
+	 *                    which rows should be deleted.  Of the format
+	 *                    array( 'item_id' => 7, 'class' => 'BP_Groups_Invitation_Manager', ).
 	 * @return int|bool Number of rows deleted on success, false on failure.
 	 */
 	public static function delete( $args = array() ) {

@@ -1535,7 +1535,7 @@ function groups_uninvite_user( $user_id, $group_id, $inviter_id = false ) {
 		'inviter_id' => $inviter_id,
 	) );
 
- 	if ( $success ) {
+	if ( $success ) {
 		/**
 		 * Fires after uninviting a user from a group.
 		 *
@@ -1604,8 +1604,8 @@ function groups_reject_invite( $user_id, $group_id, $inviter_id = false ) {
 	 * @since 1.0.0
 	 * @since 5.0.0 The $inviter_id arg was added.
 	 *
-	 * @param int $user_id  ID of the user rejecting the invite.
-	 * @param int $group_id ID of the group being rejected.
+	 * @param int $user_id    ID of the user rejecting the invite.
+	 * @param int $group_id   ID of the group being rejected.
 	 * @param int $inviter_id ID of the inviter.
 	 */
 	do_action( 'groups_reject_invite', $user_id, $group_id, $inviter_id );
@@ -2232,16 +2232,15 @@ function groups_check_for_membership_request( $user_id, $group_id ) {
   * @return array Array of group IDs.
   */
  function groups_get_membership_requested_user_ids( $group_id = 0 ) {
- 	if ( ! $group_id ) {
- 		$group_id = bp_get_current_group_id();
- 	}
+	if ( ! $group_id ) {
+		$group_id = bp_get_current_group_id();
+	}
 
-	$requests      = groups_get_requests( array(
+	$requests = groups_get_requests( array(
 		'item_id' => $group_id,
 		'fields'  => 'user_ids'
 	) );
 
-	//@TODO-6210: What about those who make a request by email only (not yet site members)?
 	return $requests;
 }
 

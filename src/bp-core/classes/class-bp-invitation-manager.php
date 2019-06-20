@@ -63,18 +63,18 @@ abstract class BP_Invitation_Manager {
 	 *
 	 * @param array $args {
 	 *     Array of arguments describing the invitation. All are optional.
-	 *	   @type int    $user_id ID of the invited user.
-	 *	   @type int    $inviter_id ID of the user who created the invitation.
-	 *	   @type string $invitee_email Email address of the invited user.
-	 * 	   @type int    $item_id ID associated with the invitation and class.
-	 * 	   @type int    $secondary_item_id secondary ID associated with the
-	 *			        invitation and class.
-	 * 	   @type string $type @TODO.
-	 * 	   @type string $content Extra information provided by the requester
-	 *			        or inviter.
-	 * 	   @type string $date_modified Date the invitation was last modified.
-	 * 	   @type int    $send_invite Should the invitation also be sent, or is it a
-	 *			 draft invite?
+	 *	   @type int    $user_id           ID of the invited user.
+	 *	   @type int    $inviter_id        ID of the user who created the invitation.
+	 *	   @type string $invitee_email     Email address of the invited user.
+	 * 	   @type int    $item_id           ID associated with the invitation and class.
+	 * 	   @type int    $secondary_item_id Secondary ID associated with the
+	 *			                           invitation and class.
+	 * 	   @type string $type              Type of record this is: 'invite' or 'request'.
+	 * 	   @type string $content           Extra information provided by the requester
+	 *			                           or inviter.
+	 * 	   @type string $date_modified     Date the invitation was last modified.
+	 * 	   @type int    $send_invite       Should the invitation also be sent, or is it a
+	 *			                           draft invite?
 	 * }
 	 * @return int|bool ID of the newly created invitation on success, false
 	 *         on failure.
@@ -83,12 +83,12 @@ abstract class BP_Invitation_Manager {
 
 		$r = bp_parse_args( $args, array(
 			'user_id'           => 0,
-			'invitee_email'		=> '',
-			'inviter_id'		=> 0,
+			'invitee_email'     => '',
+			'inviter_id'        => 0,
 			'item_id'           => 0,
 			'secondary_item_id' => 0,
-			'type'				=> 'invite',
-			'content'			=> '',
+			'type'              => 'invite',
+			'content'           => '',
 			'date_modified'     => bp_core_current_time(),
 			'send_invite'       => 0,
 			'accepted'          => 0
@@ -215,7 +215,7 @@ abstract class BP_Invitation_Manager {
 	 * 	   @type int    $item_id ID associated with the invitation and class.
 	 * 	   @type int    $secondary_item_id secondary ID associated with the
 	 *			        invitation and class.
-	 * 	   @type string $type @TODO.
+	 * 	   @type string $type @TODO. < missing description.
 	 * 	   @type string $content Extra information provided by the requester
 	 *			        or inviter.
 	 * 	   @type string $date_modified Date the invitation was last modified.

@@ -174,7 +174,7 @@ class BP_Invitation {
 			'item_id'           => $this->item_id,
 			'secondary_item_id' => $this->secondary_item_id,
 			'type'              => $this->type,
-			'content'           => $this->content,
+			'content'           => wp_kses( wp_unslash( $this->content ), array() ),
 			'date_modified'     => $this->date_modified,
 			'invite_sent'       => $this->invite_sent,
 			'accepted'          => $this->accepted,
@@ -735,6 +735,8 @@ class BP_Invitation {
 			$sql['fields'] = "DISTINCT i.item_id";
 		} else if ( 'user_ids' === $r['fields'] ) {
 			$sql['fields'] = "DISTINCT i.user_id";
+		} else if ( 'inviter_ids' === $r['fields'] ) {
+			$sql['fields'] = "DISTINCT i.inviter_id";
 		} else {
 			$sql['fields'] = 'DISTINCT i.id';
 		}
@@ -788,7 +790,7 @@ class BP_Invitation {
 		}
 
 		// Special return format cases.
-		if ( 'ids' === $r['fields'] || 'item_ids' === $r['fields'] || 'user_ids' === $r['fields'] ) {
+		if ( in_array( $r['fields'], array( 'ids', 'item_ids', 'user_ids', 'inviter_ids' ), true ) ) {
 			// We only want the field that was found.
 			return array_map( 'intval', $paged_invite_ids );
 		}

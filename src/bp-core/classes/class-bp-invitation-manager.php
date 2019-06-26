@@ -478,6 +478,10 @@ abstract class BP_Invitation_Manager {
 			return false;
 		}
 
+		if ( ! $this->invitation_exists( $r ) ) {
+			return false;
+		}
+
 		$success = $this->run_acceptance_action( 'invite', $r );
 		if ( $success ) {
 			// Mark invitations & requests to this item for this user.
@@ -517,6 +521,10 @@ abstract class BP_Invitation_Manager {
 		$r['class'] = $this->class_name;
 
 		if ( ! ( $r['user_id'] && $r['class'] && $r['item_id'] ) ) {
+			return false;
+		}
+
+		if ( ! $this->request_exists( $r ) ) {
 			return false;
 		}
 

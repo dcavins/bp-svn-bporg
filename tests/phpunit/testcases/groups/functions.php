@@ -115,16 +115,18 @@ class BP_Tests_Groups_Functions extends BP_UnitTestCase {
 	public function test_total_group_count_groups_accept_invite() {
 		$u1 = self::factory()->user->create();
 		$u2 = self::factory()->user->create();
-		$g = self::factory()->group->create();
+		$g = self::factory()->group->create( array( 'status' => 'private', 'creator_id' => $u2 ) );
+
 		groups_invite_user( array(
 			'user_id' => $u1,
 			'group_id' => $g,
 			'inviter_id' => $u2,
+			'send_invite' => 1,
 		) );
 
-		groups_accept_invite( $u2, $g );
+		groups_accept_invite( $u1, $g );
 
-		$this->assertEquals( 1, bp_get_user_meta( $u2, 'total_group_count', true ) );
+		$this->assertEquals( 1, bp_get_user_meta( $u1, 'total_group_count', true ) );
 	}
 
 	/**
@@ -138,7 +140,7 @@ class BP_Tests_Groups_Functions extends BP_UnitTestCase {
 		$current_user = bp_loggedin_user_id();
 		$this->set_current_user( $u2 );
 
-		$g = self::factory()->group->create();
+		$g = self::factory()->group->create( array( 'status' => 'private' ) );
 		groups_send_membership_request( array(
 			'user_id'       => $u1,
 			'group_id'      => $g,
@@ -245,11 +247,12 @@ class BP_Tests_Groups_Functions extends BP_UnitTestCase {
 	public function test_total_member_count_groups_accept_invite() {
 		$u1 = self::factory()->user->create();
 		$u2 = self::factory()->user->create();
-		$g = self::factory()->group->create( array( 'creator_id' => $u1 ) );
+		$g = self::factory()->group->create( array( 'status' => 'private', 'creator_id' => $u1 ) );
 		groups_invite_user( array(
-			'user_id' => $u1,
-			'group_id' => $g,
-			'inviter_id' => $u2,
+			'user_id'     => $u2,
+			'group_id'    => $g,
+			'inviter_id'  => $u1,
+			'send_invite' => 1,
 		) );
 
 		groups_accept_invite( $u2, $g );
@@ -264,7 +267,7 @@ class BP_Tests_Groups_Functions extends BP_UnitTestCase {
 	public function test_total_member_count_groups_accept_membership_request() {
 		$u1 = self::factory()->user->create();
 		$u2 = self::factory()->user->create();
-		$g = self::factory()->group->create( array( 'creator_id' => $u1 ) );
+		$g = self::factory()->group->create( array( 'status' => 'private', 'creator_id' => $u1 ) );
 
 		groups_send_membership_request( array(
 			'user_id'       => $u2,
@@ -912,12 +915,13 @@ Bar!';
 	 */
 	public function test_bp_groups_pending_sent_invitations_personal_data_exporter() {
 		groups_invite_user( array(
-			'user_id'    => self::$user_ids[1],
-			'group_id'   => self::$group_ids[0],
-			'inviter_id' => self::$user_ids[0],
+			'user_id'     => self::$user_ids[0],
+			'group_id'    => self::$group_ids[0],
+			'inviter_id'  => self::$user_ids[2],
+			'send_invite' => 1,
 		) );
 
-		$test_user = new WP_User( self::$user_ids[0] );
+		$test_user = new WP_User( self::$user_ids[2] );
 
 		$actual = bp_groups_pending_sent_invitations_personal_data_exporter( $test_user->user_email, 1 );
 
@@ -934,7 +938,7 @@ Bar!';
 		groups_invite_user( array(
 			'user_id'    => self::$user_ids[0],
 			'group_id'   => self::$group_ids[0],
-			'inviter_id' => self::$user_ids[1],
+			'inviter_id' => self::$user_ids[2],
 		) );
 
 		$test_user = new WP_User( self::$user_ids[0] );

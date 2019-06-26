@@ -395,9 +395,10 @@ class BP_Tests_Groups_Functions_BpGetUserGroups extends BP_UnitTestCase {
 		) );
 
 		groups_invite_user( array(
-			'user_id' => self::$user,
-			'group_id' => self::$groups[2],
-			'inviter_id' => self::$admin_user,
+			'user_id'     => self::$user,
+			'group_id'    => self::$groups[2],
+			'inviter_id'  => self::$admin_user,
+			'send_invite' => 1
 		) );
 
 		$expected = array( self::$groups[0], self::$groups[1], self::$groups[2] );
@@ -413,9 +414,10 @@ class BP_Tests_Groups_Functions_BpGetUserGroups extends BP_UnitTestCase {
 	 */
 	public function test_cache_should_be_invalidated_on_group_uninvite() {
 		groups_invite_user( array(
-			'user_id' => self::$user,
-			'group_id' => self::$groups[2],
-			'inviter_id' => self::$admin_user,
+			'user_id'     => self::$user,
+			'group_id'    => self::$groups[2],
+			'inviter_id'  => self::$admin_user,
+			'send_invite' => 1,
 		) );
 
 		// Populate cache.
@@ -438,9 +440,10 @@ class BP_Tests_Groups_Functions_BpGetUserGroups extends BP_UnitTestCase {
 	 */
 	public function test_cache_should_be_invalidated_on_group_invite_acceptance() {
 		groups_invite_user( array(
-			'user_id' => self::$user,
-			'group_id' => self::$groups[2],
-			'inviter_id' => self::$admin_user,
+			'user_id'     => self::$user,
+			'group_id'    => self::$groups[2],
+			'inviter_id'  => self::$admin_user,
+			'send_invite' => 1
 		) );
 
 		// Populate cache.
@@ -459,9 +462,10 @@ class BP_Tests_Groups_Functions_BpGetUserGroups extends BP_UnitTestCase {
 	 */
 	public function test_cache_should_be_invalidated_on_group_invite_reject() {
 		groups_invite_user( array(
-			'user_id' => self::$user,
-			'group_id' => self::$groups[2],
-			'inviter_id' => self::$admin_user,
+			'user_id'     => self::$user,
+			'group_id'    => self::$groups[2],
+			'inviter_id'  => self::$admin_user,
+			'send_invite' => 1
 		) );
 
 		// Populate cache.
@@ -484,9 +488,10 @@ class BP_Tests_Groups_Functions_BpGetUserGroups extends BP_UnitTestCase {
 	 */
 	public function test_cache_should_be_invalidated_on_group_invite_delete() {
 		groups_invite_user( array(
-			'user_id' => self::$user,
-			'group_id' => self::$groups[2],
-			'inviter_id' => self::$admin_user,
+			'user_id'     => self::$user,
+			'group_id'    => self::$groups[2],
+			'inviter_id'  => self::$admin_user,
+			'send_invite' => 1
 		) );
 
 		// Populate cache.

@@ -50,13 +50,13 @@ class BP_Nouveau_Group_Invite_Query extends BP_User_Query {
 
 		$group_member_ids = $this->get_group_member_ids();
 
-		/*
-		 * We want to get users that are already members of the group
-		 * or that have already been invited (by the current user).
+		/**
+		 * We want to exclude users who are already members or who have been
+		 * invited by **any** of the group members to join it.
 		 */
 		$type = 'exclude';
 
-		// We want to get invited users who did not confirmed yet
+		// We want to get the invited users who did not confirmed yet.
 		if ( false === $this->query_vars['is_confirmed'] ) {
 			$type = 'include';
 		}
@@ -80,9 +80,8 @@ class BP_Nouveau_Group_Invite_Query extends BP_User_Query {
 			return $this->group_member_ids;
 		}
 
-		// Fetch users the current user has invited who are not confirmed yet.
+		// Fetch **all** invited users.
 		$pending_invites = groups_get_invites( array(
-			'inviter_id'  => bp_loggedin_user_id(),
 			'item_id'     => $this->query_vars['group_id'],
 			'invite_sent' => 'sent',
 			'fields'      => 'user_ids'
@@ -93,11 +92,10 @@ class BP_Nouveau_Group_Invite_Query extends BP_User_Query {
 			return $pending_invites;
 		}
 
-		/*
+		/**
 		 * Otherwise, we want group members _and_ users with outstanding invitations,
 		 * because we're doing an "exclude" query.
 		 */
-
 		$bp  = buddypress();
 		$sql = array(
 			'select'  => "SELECT user_id FROM {$bp->groups->table_name_members}",
@@ -120,11 +118,9 @@ class BP_Nouveau_Group_Invite_Query extends BP_User_Query {
 		$sql['order']   = 'DESC';
 
 		/** LIMIT clause ******************************************************/
-		$member_ids = $wpdb->get_col( "{$sql['select']} {$sql['where']} {$sql['orderby']} {$sql['order']} {$sql['limit']}" );
+		$this->group_member_ids = $wpdb->get_col( "{$sql['select']} {$sql['where']} {$sql['orderby']} {$sql['order']} {$sql['limit']}" );
 
-		$this->group_member_ids = array_merge( $member_ids, $pending_invites );
-
-		return $this->group_member_ids;
+		return array_merge( $this->group_member_ids, $pending_invites );
 	}
 
 	/**

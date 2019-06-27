@@ -281,11 +281,6 @@ add_action( 'bp_invitation_after_save', 'bp_groups_clear_user_group_cache_on_inv
  * @param array $args Associative array of columns/values describing invitations about to be deleted.
  */
 function bp_groups_clear_user_group_cache_on_invitation_change( $args ) {
-	// Will the delete request act on invitations?
-	if ( empty( $args['class'] ) || 'BP_Groups_Invitation_Manager' !== $args['class'] ) {
-		return;
-	}
-
 	$args['fields' ] = 'ids';
 	$affected_invitation_ids = groups_get_invites( $args );
 	foreach ( $affected_invitation_ids as $invitation_id ) {

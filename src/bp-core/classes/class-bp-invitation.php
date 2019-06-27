@@ -206,6 +206,8 @@ class BP_Invitation {
 			$retval   = $wpdb->insert_id;
 		}
 
+		wp_cache_delete( $this->id, 'bp_invitations' );
+
 		/**
 		 * Fires after an invitation is saved.
 		 *
@@ -870,6 +872,25 @@ class BP_Invitation {
 
 		$retval = self::_update( $update['data'], $where['data'], $update['format'], $where['format'] );
 
+		// Clear matching items from the cache.
+		$cache_args = $where_args;
+		$cache_args['fields'] = 'ids';
+		$maybe_cached_ids = self::get( $cache_args );
+		foreach ( $maybe_cached_ids as $invite_id ) {
+			wp_cache_delete( $invite_id, 'bp_invitations' );
+		}
+
+		/**
+		 * Fires after an invitation is updated.
+		 *
+		 * @since 5.0.0
+		 *
+		 * @param array $where_args  Associative array of columns/values describing
+		 *                           invitations about to be deleted.
+		 * @param array $update_args Array of new values.
+		 */
+		do_action( 'bp_invitation_after_update', $where_args, $update_args );
+
   		return $retval;
 	}
 
@@ -897,6 +918,14 @@ class BP_Invitation {
 		 * @param array $args Characteristics of the invitations to be deleted.
 		 */
 		do_action( 'bp_invitation_before_delete', $args );
+
+		// Clear matching items from the cache.
+		$cache_args = $args;
+		$cache_args['fields'] = 'ids';
+		$maybe_cached_ids = self::get( $cache_args );
+		foreach ( $maybe_cached_ids as $invite_id ) {
+			wp_cache_delete( $invite_id, 'bp_invitations' );
+		}
 
 		$retval = self::_delete( $where['data'], $where['format'] );
 

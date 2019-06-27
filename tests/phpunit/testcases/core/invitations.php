@@ -7,7 +7,7 @@ include_once BP_TESTS_DIR . 'assets/invitations-extensions.php';
  * @group invitations
  */
  class BP_Tests_Invitations extends BP_UnitTestCase {
-		public function test_bp_invitations_add_invitation_vanilla() {
+	public function test_bp_invitations_add_invitation_vanilla() {
 		$old_current_user = get_current_user_id();
 
 		$u1 = $this->factory->user->create();
@@ -255,6 +255,34 @@ include_once BP_TESTS_DIR . 'assets/invitations-extensions.php';
 		);
 		$invites = $invites_class->get_invitations( $get_invites );
 		$this->assertEqualSets( array( $r1, $i1 ), $invites );
+
+		$this->set_current_user( $old_current_user );
+	}
+
+	public function test_bp_invitations_sending_should_clear_cache() {
+		$old_current_user = get_current_user_id();
+
+		$u1 = $this->factory->user->create();
+		$u2 = $this->factory->user->create();
+		$this->set_current_user( $u1 );
+
+		$invites_class = new BPTest_Invitation_Manager_Extension();
+
+		// Create an invitation.
+		$invite_args = array(
+			'user_id'           => $u2,
+			'inviter_id'		=> $u1,
+			'item_id'           => 1,
+		);
+		$i1 = $invites_class->add_invitation( $invite_args );
+
+		$invite = new BP_Invitation( $i1 );
+		$this->assertEquals( 0, $invite->invite_sent );
+
+		$invites_class->send_invitation_by_id( $i1 );
+
+		$invite = new BP_Invitation( $i1 );
+		$this->assertEquals( 1, $invite->invite_sent );
 
 		$this->set_current_user( $old_current_user );
 	}

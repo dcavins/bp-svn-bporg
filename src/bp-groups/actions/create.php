@@ -136,10 +136,7 @@ function groups_action_create_group() {
 				}
 			}
 
-			groups_send_invites( array(
-				'group_id'   => $bp->groups->new_group_id,
-				'inviter_id' => bp_loggedin_user_id(),
-			) );
+			groups_send_invites( array(	'group_id' => $bp->groups->new_group_id ) );
 		}
 
 		/**

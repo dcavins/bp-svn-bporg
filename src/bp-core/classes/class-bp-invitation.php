@@ -350,7 +350,7 @@ class BP_Invitation {
 		$where            = '';
 
 		// id
-		if ( ! empty( $args['id'] ) ) {
+		if ( false !== $args['id'] ) {
 			$id_in = implode( ',', wp_parse_id_list( $args['id'] ) );
 			$where_conditions['id'] = "id IN ({$id_in})";
 		}

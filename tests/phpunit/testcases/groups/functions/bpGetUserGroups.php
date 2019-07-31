@@ -70,8 +70,9 @@ class BP_Tests_Groups_Functions_BpGetUserGroups extends BP_UnitTestCase {
 	}
 
 	public function test_is_confirmed_true() {
-		$this->add_user_to_group( self::$user, self::$groups[2], array(
-			'is_confirmed' => false,
+		groups_send_membership_request( array(
+			'user_id' => self::$user,
+			'group_id' => self::$groups[2]
 		) );
 
 		$expected = array( self::$groups[0], self::$groups[1] );
@@ -83,8 +84,9 @@ class BP_Tests_Groups_Functions_BpGetUserGroups extends BP_UnitTestCase {
 	}
 
 	public function test_is_confirmed_false() {
-		$this->add_user_to_group( self::$user, self::$groups[2], array(
-			'is_confirmed' => false,
+		groups_send_membership_request( array(
+			'user_id' => self::$user,
+			'group_id' => self::$groups[2]
 		) );
 
 		$expected = array( self::$groups[2] );
@@ -96,8 +98,9 @@ class BP_Tests_Groups_Functions_BpGetUserGroups extends BP_UnitTestCase {
 	}
 
 	public function test_is_confirmed_null() {
-		$this->add_user_to_group( self::$user, self::$groups[2], array(
-			'is_confirmed' => false,
+		groups_send_membership_request( array(
+			'user_id' => self::$user,
+			'group_id' => self::$groups[2]
 		) );
 
 		$expected = array( self::$groups[0], self::$groups[1], self::$groups[2] );

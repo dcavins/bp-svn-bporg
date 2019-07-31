@@ -1605,11 +1605,13 @@ class BP_Tests_BP_Groups_Group_TestCases extends BP_UnitTestCase {
 		$group_a = new BP_Groups_Group( $g );
 		$this->assertFalse( $group_a->is_invited );
 
-		$this->add_user_to_group( $users[1], $g, array(
-			'invite_sent' => 1,
+		groups_invite_user( array(
+			'user_id'    => $users[1],
+			'group_id'   => $g,
 			'inviter_id' => $users[0],
-			'is_confirmed' => 0,
+			'send_invite' => 1
 		) );
+
 		$group_b = new BP_Groups_Group( $g );
 		$this->assertFalse( $group_b->is_invited );
 	}
@@ -1629,11 +1631,11 @@ class BP_Tests_BP_Groups_Group_TestCases extends BP_UnitTestCase {
 		$group_a = new BP_Groups_Group( $g );
 		$this->assertFalse( $group_a->is_pending );
 
-		$this->add_user_to_group( $users[1], $g, array(
-			'is_confirmed' => 0,
-			'invite_sent' => 0,
-			'inviter_id' => 0,
+		groups_send_membership_request( array(
+			'user_id' => $users[1],
+			'group_id' => $g
 		) );
+
 		$group_b = new BP_Groups_Group( $g );
 		$this->assertFalse( $group_b->is_pending );
 	}

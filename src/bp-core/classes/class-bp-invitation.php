@@ -1,5 +1,4 @@
 <?php
-
 /**
  * BuddyPress Invitation Class
  *
@@ -87,7 +86,6 @@ class BP_Invitation {
 	 */
 	public $secondary_item_id = null;
 
-
 	/**
 	 * Invite or request.
 	 *
@@ -132,7 +130,6 @@ class BP_Invitation {
 	 * @var bool
 	 */
 	public $accepted;
-
 
 	/** Public Methods ****************************************************/
 

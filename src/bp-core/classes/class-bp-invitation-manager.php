@@ -560,7 +560,6 @@ abstract class BP_Invitation_Manager {
 		return BP_Invitation::update( $update_args, $where_args );
 	}
 
-
 	/**
 	 * This is where custom actions are added (in child classes)
 	 * to run when an invitation or request needs to be "sent."

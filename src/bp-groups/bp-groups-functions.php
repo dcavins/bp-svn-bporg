@@ -3134,23 +3134,30 @@ function bp_groups_migrate_invitations() {
 	$records = $wpdb->get_results( "SELECT id, group_id, user_id, inviter_id, date_modified, comments, invite_sent FROM {$bp->groups->table_name_members} WHERE is_confirmed = 0 AND is_banned = 0" );
 
 	$processed = array();
+	$values = array();
 	foreach ( $records as $record ) {
-		$invitation = new BP_Invitation;
-		$invitation->user_id           = $record->user_id;
-		$invitation->inviter_id        = $record->inviter_id;
-		$invitation->invitee_email     = '';
-		$invitation->class             = 'BP_Groups_Invitation_Manager';
-		$invitation->item_id           = $record->group_id;
-		$invitation->secondary_item_id = 0;
-		$invitation->type              = ( 0 === (int) $record->inviter_id ) ? 'request' : 'invite';
-		$invitation->content           = $record->comments;
-		$invitation->date_modified     = $record->date_modified;
-		$invitation->invite_sent       = $record->invite_sent;
-		$invitation->accepted          = 0;
-
-		$invite_id = $invitation->save();
+		$values[] = $wpdb->prepare(
+			"(%d, %d, %s, %s, %d, %d, %s, %s, %s, %d, %d)",
+			(int) $record->user_id,
+			(int) $record->inviter_id,
+			'',
+			'bp_groups_invitation_manager',
+			(int) $record->group_id,
+			0,
+			( 0 === (int) $record->inviter_id ) ? 'request' : 'invite',
+			$record->comments,
+			$record->date_modified,
+			(int) $record->invite_sent,
+			0
+		);
 		$processed[] = (int) $record->id;
 	}
+
+	$table_name = BP_Invitation_Manager::get_table_name();
+	$query = "INSERT INTO {$table_name} (user_id, inviter_id, invitee_email, class, item_id, secondary_item_id, type, content, date_modified, invite_sent, accepted) VALUES ";
+	$query .= implode(', ', $values );
+	$query .= ';';
+	$wpdb->query( $query );
 
 	$ids_to_delete = implode( ',', $processed );
 	if ( $ids_to_delete ) {

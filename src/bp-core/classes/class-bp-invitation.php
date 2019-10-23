@@ -347,8 +347,9 @@ class BP_Invitation {
 		$where            = '';
 
 		// id
-		if ( false !== $args['id'] ) {
-			$id_in = implode( ',', wp_parse_id_list( $args['id'] ) );
+		if ( false !== $args['id'] && null !== $args['id'] ) {
+			$parsed_ids = wp_parse_id_list( $args['id'] );
+			$id_in      = ! empty( $parsed_ids ) ? implode( ',', $parsed_ids ) : 0;
 			$where_conditions['id'] = "id IN ({$id_in})";
 		}
 
@@ -422,7 +423,7 @@ class BP_Invitation {
 		 * invite_sent
 		 * Only create a where statement if something less than "all" has been
 		 * specifically requested.
-		 */ 
+		 */
 		if ( ! empty( $args['invite_sent'] ) && 'all' !== $args['invite_sent'] ) {
 			if ( $args['invite_sent'] == 'draft' ) {
 				$where_conditions['invite_sent'] = "invite_sent = 0";

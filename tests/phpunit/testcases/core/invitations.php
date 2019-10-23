@@ -7,6 +7,28 @@ include_once BP_TESTS_DIR . 'assets/invitations-extensions.php';
  * @group invitations
  */
  class BP_Tests_Invitations extends BP_UnitTestCase {
+ 	public function populate_invitations() {
+		$u1 = $this->factory->user->create();
+		$u2 = $this->factory->user->create();
+		$u3 = $this->factory->user->create();
+		$this->set_current_user( $u1 );
+
+		$invites_class = new BPTest_Invitation_Manager_Extension();
+
+		// Create a couple of invitations.
+		$invite_args = array(
+			'user_id'           => $u3,
+			'inviter_id'		=> $u1,
+			'item_id'           => 1,
+			'send_invite'       => 'sent',
+		);
+		$i1 = $invites_class->add_invitation( $invite_args );
+		$invite_args['inviter_id'] = $u2;
+		$i2 = $invites_class->add_invitation( $invite_args );
+
+		return array( $i1, $i2 );
+ 	}
+
 	public function test_bp_invitations_add_invitation_vanilla() {
 		$old_current_user = get_current_user_id();
 
@@ -173,7 +195,7 @@ include_once BP_TESTS_DIR . 'assets/invitations-extensions.php';
 
 		$this->set_current_user( $old_current_user );
 	}
-	
+
 	public function test_bp_invitations_add_request_vanilla() {
 		$old_current_user = get_current_user_id();
 
@@ -287,4 +309,130 @@ include_once BP_TESTS_DIR . 'assets/invitations-extensions.php';
 		$this->set_current_user( $old_current_user );
 	}
 
+	/**
+	 * @group bp_invitation_get_id_param
+	 */
+	public function test_bp_invitations_get_id_false_should_return_all() {
+		$old_current_user = get_current_user_id();
+
+		$invitations = $this->populate_invitations();
+
+		$invites_class = new BPTest_Invitation_Manager_Extension();
+		$found = $invites_class->get_invitations( array(
+			'id'     => false,
+			'fields' => 'ids',
+		) );
+		$this->assertEqualSets( $invitations, $found );
+
+		$this->set_current_user( $old_current_user );
+	}
+
+	/**
+	 * @group bp_invitation_get_id_param
+	 */
+	public function test_bp_invitations_get_id_null_should_return_all() {
+		$old_current_user = get_current_user_id();
+
+		$invitations = $this->populate_invitations();
+
+		$invites_class = new BPTest_Invitation_Manager_Extension();
+		$found = $invites_class->get_invitations( array(
+			'id'     => null,
+			'fields' => 'ids',
+		) );
+		$this->assertEqualSets( $invitations, $found );
+
+		$this->set_current_user( $old_current_user );
+	}
+
+	/**
+	 * @group bp_invitation_get_id_param
+	 */
+	public function test_bp_invitations_get_id_empty_array_should_return_none() {
+		$old_current_user = get_current_user_id();
+
+		$invitations = $this->populate_invitations();
+
+		$invites_class = new BPTest_Invitation_Manager_Extension();
+		$found = $invites_class->get_invitations( array(
+			'id'     => array(),
+			'fields' => 'ids',
+		) );
+		$this->assertEmpty( $found );
+
+		$this->set_current_user( $old_current_user );
+	}
+
+	/**
+	 * @group bp_invitation_get_id_param
+	 */
+	public function test_bp_invitations_get_id_array_zero_should_return_none() {
+		$old_current_user = get_current_user_id();
+
+		$invitations = $this->populate_invitations();
+
+		$invites_class = new BPTest_Invitation_Manager_Extension();
+		$found = $invites_class->get_invitations( array(
+			'id'     => array( 0 ),
+			'fields' => 'ids',
+		) );
+		$this->assertEmpty( $found );
+
+		$this->set_current_user( $old_current_user );
+	}
+
+	/**
+	 * @group bp_invitation_get_id_param
+	 */
+	public function test_bp_invitations_get_id_zero_int_should_return_none() {
+		$old_current_user = get_current_user_id();
+
+		$invitations = $this->populate_invitations();
+
+		$invites_class = new BPTest_Invitation_Manager_Extension();
+		$found = $invites_class->get_invitations( array(
+			'id'     => 0,
+			'fields' => 'ids',
+		) );
+		$this->assertEmpty( $found );
+
+		$this->set_current_user( $old_current_user );
+	}
+
+	/**
+	 * @group bp_invitation_get_id_param
+	 */
+	public function test_bp_invitations_get_id_zero_string_should_return_none() {
+		$old_current_user = get_current_user_id();
+
+		$invitations = $this->populate_invitations();
+
+		$invites_class = new BPTest_Invitation_Manager_Extension();
+		$found = $invites_class->get_invitations( array(
+			'id'     => '0',
+			'fields' => 'ids',
+		) );
+		$this->assertEmpty( $found );
+
+		$this->set_current_user( $old_current_user );
+	}
+
+
+	/**
+	 * @group bp_invitation_get_id_param
+	 */
+	public function test_bp_invitations_get_id_empty_string_should_return_none() {
+		$old_current_user = get_current_user_id();
+
+		$invitations = $this->populate_invitations();
+
+		$invites_class = new BPTest_Invitation_Manager_Extension();
+		$found = $invites_class->get_invitations( array(
+			'id'     => '',
+			'fields' => 'ids',
+		) );
+		$this->assertEmpty( $found );
+
+		$this->set_current_user( $old_current_user );
+	}
 }

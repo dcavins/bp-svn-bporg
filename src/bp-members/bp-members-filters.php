@@ -127,3 +127,43 @@ function bp_members_edit_profile_url( $url, $user_id, $scheme = 'admin' ) {
 	return apply_filters( 'bp_members_edit_profile_url', $profile_link, $url, $user_id, $scheme );
 }
 add_filter( 'edit_profile_url', 'bp_members_edit_profile_url', 10, 3 );
+
+/**
+ * Filter the bp_user_can value to determine what the user can do in the members component.
+ *
+ * @since 3.0.0
+ *
+ * @param bool   $retval     Whether or not the current user has the capability.
+ * @param int    $user_id
+ * @param string $capability The capability being checked for.
+ * @param int    $site_id    Site ID. Defaults to the BP root blog.
+ * @param array  $args       Array of extra arguments passed.
+ *
+ * @return bool
+ */
+function bp_members_user_can_filter( $retval, $user_id, $capability, $site_id, $args ) {
+
+	switch ( $capability ) {
+		case 'manage_network_membership_requests':
+			$retval = bp_user_can( $user_id, 'bp_moderate' );
+			break;
+		case 'send_network_membership_invitations':
+			// @TODO: Set by level, etc?
+			$retval = true;
+			break;
+	}
+
+	return $retval;
+
+}
+add_filter( 'bp_user_can', 'bp_members_user_can_filter', 10, 5 );
+
+function maybe_prevent_activation_emails( $usermeta ) {
+	// Stop the activation email from being sent if registration is by request only.
+	// $if "anyone can join is not true,"
+	if ( true ) {
+
+	}
+	return $usermeta;
+}
+add_filter( 'bp_signup_usermeta', 10, 1 );

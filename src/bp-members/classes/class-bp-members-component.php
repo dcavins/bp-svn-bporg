@@ -63,6 +63,7 @@ class BP_Members_Component extends BP_Component {
 			'functions',
 			'widgets',
 			'cache',
+			'notifications',
 		);
 
 		if ( bp_is_active( 'activity' ) ) {

@@ -275,6 +275,34 @@ function bp_activate_slug() {
 	}
 
 /**
+ * Output the members invitation pane slug.
+ *
+ * @since 1.5.0
+ *
+ */
+function bp_members_invitations_slug() {
+	echo bp_get_members_invitations_slug();
+}
+	/**
+	 * Return the members invitations root slug.
+	 *
+	 * @since 1.5.0
+	 *
+	 * @return string
+	 */
+	function bp_get_members_invitations_slug() {
+
+		/**
+		 * Filters the Members invitations pane root slug.
+		 *
+		 * @since 1.5.0
+		 *
+		 * @param string $slug Members invitations pane root slug.
+		 */
+		return apply_filters( 'bp_get_members_invitations_slug', 'invitations' );
+	}
+
+/**
  * Initialize the members loop.
  *
  * Based on the $args passed, bp_has_members() populates the $members_template

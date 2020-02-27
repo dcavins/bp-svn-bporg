@@ -2848,3 +2848,95 @@ function bp_get_current_member_type() {
 	 */
 	return apply_filters( 'bp_get_current_member_type', buddypress()->current_member_type );
 }
+
+/**
+ * Invite a user to a group.
+ *
+ * @since 5.0.0
+ *
+ * @param array|string $args {
+ *     Array of arguments.
+ *     @type int    $user_id       ID of the user being invited.
+ *     @type int    $network_id    ID of the network to which the user is being invited.
+ *     @type int    $inviter_id    Optional. ID of the inviting user. Default:
+ *                                 ID of the logged-in user.
+ *     @type string $date_modified Optional. Modified date for the invitation.
+ *                                 Default: current date/time.
+ *     @type string $content       Optional. Message to invitee.
+ *     @type bool   $send_invite   Optional. Whether the invitation should be
+ *                                 sent now. Default: false.
+ * }
+ * @return bool True on success, false on failure.
+ */
+function bp_network_invite_user( $args ) {
+	$r = bp_parse_args( $args, array(
+		'user_email'    => "",
+		'network_id'    => false,
+		'inviter_id'    => bp_loggedin_user_id(),
+		'date_modified' => bp_core_current_time(),
+		'content'       => '',
+		'send_invite'   => 0
+	), 'groups_invite_user' );
+
+	$inv_args = array(
+		'user_email'    => $r['user_email'],
+		'item_id'       => $r['network_id'],
+		'inviter_id'    => $r['inviter_id'],
+		'date_modified' => $r['date_modified'],
+		'content'       => $r['content'],
+		'send_invite'   => $r['send_invite']
+	);
+
+	// Create the unsent invitataion.
+	$invites_class = new BP_Network_Invitation_Manager();
+	$created       = $invites_class->add_invitation( $inv_args );
+
+	/**
+	 * Fires after the creation of a new group invite.
+	 *
+	 * @since 5.0.0
+	 *
+	 * @param array    $r       Array of parsed arguments for the network invite.
+	 * @param int|bool $created The ID of the invitation or false if it couldn't be created.
+	 */
+	do_action( 'network_invite_user', $r, $created );
+
+	return $created;
+}
+
+function bp_invitations_setup_nav() {
+
+	/* Add 'Send Invites' to the main user profile navigation */
+	bp_core_new_nav_item( array(
+		'name' => __( 'Invitations', 'buddypress' ),
+		'slug' => bp_get_members_invitations_slug(),
+		'position' => 80,
+		'screen_function' => 'invitations-send',
+		'default_subnav_slug' => 'invite-new-members',
+		'show_for_displayed_user' => true
+	) );
+
+	$parent_link = trailingslashit( bp_loggedin_user_domain() . bp_get_members_invitations_slug() );
+
+	/* Create two sub nav items for this component */
+	bp_core_new_subnav_item( array(
+		'name' => __( 'Invite New Members', 'buddypress' ),
+		'slug' => 'invite-new-members',
+		'parent_slug' => bp_get_members_invitations_slug(),
+		'parent_url' => $parent_link,
+		'screen_function' => 'invitations-send',
+		'position' => 10,
+		'user_has_access' => true
+	) );
+
+	bp_core_new_subnav_item( array(
+		'name' => __( 'Sent Invites', 'invite-anyone' ),
+		'slug' => 'sent-invites',
+		'parent_slug' => bp_get_members_invitations_slug(),
+		'parent_url' => $parent_link,
+		'screen_function' => 'invitations-list',
+		'position' => 20,
+		'user_has_access' => true
+	) );
+}
+add_action( 'bp_setup_nav', 'bp_invitations_setup_nav' );

@@ -299,7 +299,7 @@ function bp_members_invitations_slug() {
 		 *
 		 * @param string $slug Members invitations pane root slug.
 		 */
-		return apply_filters( 'bp_get_members_invitations_slug', 'invitations' );
+		return apply_filters( 'bp_get_members_invitations_slug', _x( 'invitations', 'member profile invitations pane URL base', 'buddypress' ) );
 	}
 
 /**

@@ -2226,6 +2226,17 @@ function bp_is_settings_component() {
 }
 
 /**
+ * Check whether the current page is an Invitations screen.
+ *
+ * @since 6.0.0
+ *
+ * @return bool True if the current page is an Invitations screen.
+ */
+function bp_is_invitations_component() {
+	return (bool) bp_is_current_component( bp_get_members_invitations_slug() );
+}
+
+/**
  * Is the current component an active core component?
  *
  * Use this function when you need to check if the current component is an
@@ -2623,6 +2634,32 @@ function bp_is_user_settings_account_delete() {
  */
 function bp_is_user_settings_profile() {
 	return (bool) ( bp_is_user_settings() && bp_is_current_action( 'profile' ) );
+}
+
+/**
+ * Is the current page a user's Friends page?
+ *
+ * Eg http://example.com/members/joe/blogs/friends/ (or a subpage thereof).
+ *
+ * @since 6.0.0
+ *
+ * @return bool True if the current page is a user's Friends page.
+ */
+function bp_is_user_invitations() {
+	return (bool) ( bp_is_user() && bp_is_invitations_component() );
+}
+
+/**
+ * Is the current page a user's Friend Requests page?
+ *
+ * Eg http://example.com/members/joe/friends/requests/.
+ *
+ * @since 1.5.0
+ *
+ * @return bool True if the current page is a user's Friends Requests page.
+ */
+function bp_is_user_invitations_list() {
+	return (bool) ( bp_is_user_invitations() && bp_is_current_action( 'sent-invites' ) );
 }
 
 /** Groups ********************************************************************/

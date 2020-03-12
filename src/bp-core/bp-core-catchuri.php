@@ -466,7 +466,7 @@ function bp_core_load_template( $templates ) {
 	if ( function_exists( 'is_embed' ) && is_embed() ) {
 		$located_template = '';
 	}
-
+var_dump( "located_template", $templates, $located_template );
 	if ( !empty( $located_template ) ) {
 		// Template was located, lets set this as a valid page and not a 404.
 		status_header( 200 );

@@ -33,6 +33,7 @@ class BP_Friends_Component extends BP_Component {
 				'adminbar_myaccount_order' => 60
 			)
 		);
+		);
 	}
 
 	/**

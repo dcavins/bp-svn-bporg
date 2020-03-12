@@ -64,6 +64,7 @@ class BP_Members_Component extends BP_Component {
 			'widgets',
 			'cache',
 			'notifications',
+			'invitations',
 		);
 
 		if ( bp_is_active( 'activity' ) ) {
@@ -124,6 +125,15 @@ class BP_Members_Component extends BP_Component {
 
 			// Theme compatibility.
 			new BP_Registration_Theme_Compat();
+		}
+
+		// Invitations.
+		if ( is_user_logged_in() && $is_invites = bp_is_user_invitations() ) {
+			// User nav.
+			require $this->path . 'bp-members/screens/send-invites.php';
+			if ( $is_list = bp_is_user_invitations_list() ) {
+				require $this->path . 'bp-members/screens/list-invites.php';
+			}
 		}
 	}
 
@@ -396,7 +406,6 @@ class BP_Members_Component extends BP_Component {
 			$main_nav  = $this->main_nav;
 			$sub_nav[] = $this->sub_nav;
 		}
-
 
 		parent::setup_nav( $main_nav, $sub_nav );
 	}
